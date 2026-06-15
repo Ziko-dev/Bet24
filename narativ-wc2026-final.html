@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Narativ. · World Cup 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://js.paystack.co/v1/inline.js" defer></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f14;--surface:#151820;--surface2:#1c2030;--border:#232736;
+  --blue:#2f80ed;--gold:#c9a84c;--text:#e4e7f0;--muted:#6b7290;
+  --green:#27ae60;--red:#e05353;--r:10px;--r-sm:7px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.5;min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+
+/* ── AUTH ── */
+#auth-gate{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px}
+#auth-gate.show{display:flex}
+.auth-logo{font-family:'DM Mono',monospace;font-size:30px;font-weight:500;color:var(--text);margin-bottom:6px}
+.auth-logo span{color:var(--blue)}
+.auth-sub{font-size:12px;color:var(--muted);margin-bottom:28px;text-align:center;line-height:1.6}
+.auth-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.auth-tabs{display:flex;gap:6px;margin-bottom:18px}
+.auth-tab{flex:1;padding:9px 0;font-size:12px;font-weight:600;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all .2s}
+.auth-tab.active{background:rgba(47,128,237,.12);border-color:var(--blue);color:var(--blue)}
+.a-field{margin-bottom:14px}
+.a-field label{display:block;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.a-field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.a-field input:focus{border-color:var(--blue)}
+.auth-err{font-size:11px;color:var(--red);min-height:18px;margin-bottom:6px;text-align:center}
+.auth-btn{width:100%;padding:13px;background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border:none;border-radius:var(--r-sm);cursor:pointer;letter-spacing:.01em;transition:opacity .2s}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-wc{margin-top:16px;font-size:11px;color:var(--gold);font-family:'DM Mono',monospace;text-align:center;opacity:.7}
+
+/* ── APP SHELL ── */
+#app-shell{display:none}
+#app-shell.show{display:block}
+
+/* ── TICKER ── */
+.ticker-wrap{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;height:30px;display:flex;align-items:center}
+.ticker-track{display:flex;gap:36px;white-space:nowrap;animation:ticker 36s linear infinite;padding-left:100%}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-item{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.03em}
+.ticker-item b{color:var(--blue);font-weight:400;margin-left:4px}
+.live-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:middle;animation:blink 1.4s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px}
+.logo{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:7px}
+.logo span{color:var(--blue)}
+.logo-wc{font-size:9px;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2);padding:2px 6px;border-radius:4px;letter-spacing:.05em;font-family:'DM Mono',monospace}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.icon-btn{width:34px;height:34px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);position:relative}
+.icon-btn svg{width:16px;height:16px}
+.badge{position:absolute;top:-4px;right:-4px;background:var(--blue);color:#fff;font-size:9px;font-weight:600;width:14px;height:14px;border-radius:50%;display:none;align-items:center;justify-content:center;pointer-events:none}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:6px 0 14px;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:4px 0;cursor:pointer;border:none;background:none;font-family:'DM Sans',sans-serif;transition:color .15s}
+.nav-item svg{width:18px;height:18px}
+.nav-item.active{color:var(--blue)}
+.nav-center{flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.nav-build-btn{width:46px;height:46px;border-radius:13px;background:var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:2px;box-shadow:0 4px 16px rgba(47,128,237,.35);cursor:pointer;border:none}
+.nav-build-btn svg{width:20px;height:20px;color:#fff}
+.nav-build-lbl{font-size:9px;font-weight:600;letter-spacing:.07em;color:var(--blue)}
+
+/* ── PAGES ── */
+.page{display:none;padding-bottom:12px;min-height:60vh}
+.page.active{display:block}
+.page-title{font-size:16px;font-weight:600;color:var(--text);padding:12px 16px 6px}
+
+/* ── MATCH CARDS ── */
+.match-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 8px;scrollbar-width:none}
+.match-scroll::-webkit-scrollbar{display:none}
+.match-card{min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer;flex-shrink:0;transition:border-color .2s}
+.match-card:active{border-color:var(--blue)}
+.match-league{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.wc-badge{font-family:'DM Mono',monospace;font-size:9px;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2);padding:2px 6px;border-radius:4px}
+.m-status{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+.m-status.live{color:var(--green)}
+.ft-pill{font-size:9px;color:var(--muted);background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace}
+.match-teams{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.match-row{display:flex;justify-content:space-between;align-items:center}
+.team-abbr{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--muted);margin-right:5px}
+.team-name{font-size:12px;font-weight:500;color:var(--text)}
+.score{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--muted)}
+.score.win{color:var(--text)}
+.match-bar{height:2px;background:var(--border);border-radius:1px}
+.match-bar-fill{height:100%;border-radius:1px;transition:width .3s}
+
+/* ── NARRATIVE CARDS ── */
+.narr-section{padding:0 16px 16px}
+.narr-match-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-top:4px}
+.narr-match-title{font-size:13px;font-weight:600;color:var(--text)}
+.narr-badge{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(47,128,237,.1);color:var(--blue);border:1px solid rgba(47,128,237,.2)}
+.narr-badge.live{background:rgba(39,174,96,.1);color:var(--green);border-color:rgba(39,174,96,.2)}
+.narr-cards-row{display:flex;flex-direction:column;gap:8px}
+.narr-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.narr-card:active{border-color:var(--blue);background:rgba(47,128,237,.05)}
+.narr-card.high-odds{border-color:rgba(201,168,76,.3)}
+.narr-text{font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;line-height:1.45}
+.narr-foot{display:flex;align-items:center;justify-content:space-between}
+.narr-outcome{font-size:10px;color:var(--muted);background:var(--surface2);padding:3px 7px;border-radius:4px;font-family:'DM Mono',monospace}
+.narr-odds-wrap{display:flex;align-items:center;gap:6px}
+.narr-odds{font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--blue)}
+.narr-add{font-size:10px;font-weight:600;background:rgba(47,128,237,.12);color:var(--blue);padding:4px 10px;border-radius:5px;border:1px solid rgba(47,128,237,.2)}
+.narr-loading{text-align:center;padding:32px 16px;color:var(--muted);font-size:12px}
+.narr-spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+.narr-empty{text-align:center;padding:24px 16px;color:var(--muted);font-size:12px}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px}
+.section-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.section-title svg{width:13px;height:13px;color:var(--blue)}
+
+/* ── MATCHES LIST ── */
+.filter-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s}
+.filter-chip.active{background:rgba(47,128,237,.1);border-color:var(--blue);color:var(--blue)}
+.match-group-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 16px 4px}
+.match-full-list{padding:0 16px;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.mfr{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;cursor:pointer}
+.mfr:active{border-color:var(--blue)}
+.mfr-status{width:48px;flex-shrink:0;text-align:center}
+.ko-pill{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.live-pill{font-size:9px;font-weight:600;color:var(--green);background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.2);padding:2px 5px;border-radius:4px;font-family:'DM Mono',monospace}
+.mfr-teams{flex:1;display:flex;flex-direction:column;gap:3px}
+.mfr-team{display:flex;align-items:center;justify-content:space-between}
+.mfr-name{font-size:12px;font-weight:500;color:var(--text)}
+.mfr-score{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--muted)}
+.mfr-score.win{color:var(--text)}
+.add-btn{font-size:10px;font-weight:600;color:var(--blue);background:rgba(47,128,237,.08);border:1px solid rgba(47,128,237,.2);padding:5px 9px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.loading-msg{text-align:center;padding:32px;color:var(--muted);font-size:12px}
+
+/* ── SLIP ── */
+.slip-empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.slip-empty svg{width:40px;height:40px;opacity:.3;margin-bottom:12px}
+.slip-empty p{font-size:14px;font-weight:500;margin-bottom:4px}
+.slip-empty small{font-size:11px}
+.slip-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin:0 16px 8px;display:flex;gap:10px;align-items:flex-start}
+.slip-left{flex:1}
+.slip-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px}
+.slip-desc{font-size:10px;color:var(--muted)}
+.slip-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.slip-odds{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--blue)}
+.slip-odds small{font-size:9px;color:var(--muted);margin-left:2px}
+.slip-rm{font-size:10px;color:var(--red);background:rgba(224,83,83,.08);border:1px solid rgba(224,83,83,.2);padding:3px 8px;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.slip-foot{padding:12px 16px;border-top:1px solid var(--border);display:none}
+.slip-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.slip-lbl{font-size:11px;color:var(--muted)}
+.slip-val{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--text)}
+.stake-row{margin:10px 0}
+.stake-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;outline:none}
+.stake-input:focus{border-color:var(--blue)}
+.presets{display:flex;gap:6px;margin-bottom:12px}
+.preset{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 4px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif}
+.preset:active{border-color:var(--blue);color:var(--blue)}
+.place-btn{width:100%;padding:13px;background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border:none;border-radius:var(--r-sm);cursor:pointer;margin-top:4px}
+
+/* ── WALLET ── */
+.wallet-hero{background:linear-gradient(135deg,rgba(47,128,237,.15),rgba(47,128,237,.05));border:1px solid rgba(47,128,237,.2);border-radius:var(--r);padding:20px;margin:12px 16px}
+.wallet-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.wallet-bal{font-family:'DM Mono',monospace;font-size:30px;font-weight:500;color:var(--text)}
+.wact-row{display:flex;gap:8px;margin-top:14px}
+.wact{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(47,128,237,.08);border:1px solid rgba(47,128,237,.18);border-radius:var(--r-sm);padding:10px 6px;cursor:pointer;font-size:10px;font-weight:600;color:var(--blue);font-family:'DM Sans',sans-serif}
+.wact svg{width:16px;height:16px}
+.wact-wd{background:rgba(107,114,144,.06);border-color:var(--border);color:var(--muted)}
+.tx-section{padding:0 16px}
+.tx-hdr{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:16px 0 8px}
+.tx-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.tx-left{display:flex;align-items:center;gap:10px}
+.tx-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.tx-icon.dep{background:rgba(39,174,96,.12)}
+.tx-icon.bet{background:rgba(47,128,237,.1)}
+.tx-icon.win{background:rgba(39,174,96,.12)}
+.tx-label{font-size:12px;font-weight:500;color:var(--text)}
+.tx-date{font-size:10px;color:var(--muted)}
+.tx-amt{font-family:'DM Mono',monospace;font-size:13px;font-weight:600}
+.tx-amt.pos{color:var(--green)}
+.tx-amt.neg{color:var(--red)}
+
+/* ── MY BETS ── */
+.hist-tabs{display:flex;gap:6px;padding:8px 16px}
+.hist-tab{flex:1;padding:7px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif}
+.hist-tab.active{background:rgba(47,128,237,.1);border-color:var(--blue);color:var(--blue)}
+.hist-panel{padding:0 16px;display:none}
+.hist-panel.active{display:block}
+.hist-empty{text-align:center;padding:32px;color:var(--muted);font-size:12px}
+.bet-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px}
+.bc-head{display:flex;justify-content:space-between;margin-bottom:8px}
+.bc-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.bc-pending{font-size:10px;font-weight:600;color:var(--gold);background:rgba(201,168,76,.1);padding:2px 8px;border-radius:4px}
+.bc-sels{margin-bottom:8px}
+.bc-sel{font-size:12px;color:var(--text);padding:4px 0;border-bottom:1px solid var(--border)}
+.bc-sel:last-child{border-bottom:none}
+.bc-foot{display:flex;gap:8px;font-family:'DM Mono',monospace;font-size:11px}
+.bc-stake{color:var(--muted)}
+.bc-odds{color:var(--blue)}
+.bc-pot{color:var(--green);margin-left:auto}
+.sbc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px}
+.sbc.won{border-color:rgba(39,174,96,.3)}
+.sbc.lost{border-color:rgba(224,83,83,.2)}
+.sbc-head{display:flex;justify-content:space-between;margin-bottom:6px}
+.sbc-res{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px}
+.sbc-res.won{background:rgba(39,174,96,.1);color:var(--green)}
+.sbc-res.lost{background:rgba(224,83,83,.1);color:var(--red)}
+.sbc-desc{font-size:11px;color:var(--muted);margin-bottom:8px}
+.sbc-foot{display:flex;justify-content:space-between;font-size:11px;font-family:'DM Mono',monospace}
+.sbc-date{color:var(--muted)}
+.sbc-pnl.pos{color:var(--green)}
+.sbc-pnl.neg{color:var(--red)}
+
+/* ── PROFILE ── */
+.profile-hero{display:flex;align-items:center;gap:14px;padding:16px}
+.p-avatar{width:52px;height:52px;border-radius:50%;background:rgba(47,128,237,.15);border:2px solid rgba(47,128,237,.3);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:var(--blue);font-family:'DM Mono',monospace;flex-shrink:0}
+.p-name{font-size:15px;font-weight:600;color:var(--text)}
+.p-email{font-size:11px;color:var(--muted);margin-top:2px}
+.pref-section{padding:0 16px}
+.pref-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.pref-lbl{font-size:13px;color:var(--text)}
+.pref-val{font-size:12px;color:var(--muted)}
+.signout-btn{display:block;width:calc(100% - 32px);margin:20px 16px;padding:12px;background:rgba(224,83,83,.1);border:1px solid rgba(224,83,83,.2);color:var(--red);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:var(--r-sm);cursor:pointer}
+
+/* ── MODAL (crypto) ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;width:100%;max-width:430px;padding:20px 20px 32px;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:11px;color:var(--muted);margin-bottom:18px}
+.modal-close{float:right;font-size:13px;color:var(--muted);cursor:pointer;border:none;background:none;font-family:'DM Sans',sans-serif;margin-top:-2px}
+.crypto-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.crypto-opt{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;cursor:pointer;text-align:center;transition:border-color .2s}
+.crypto-opt.sel{border-color:var(--blue);background:rgba(47,128,237,.08)}
+.crypto-sym{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--text)}
+.crypto-name{font-size:10px;color:var(--muted);margin-top:2px}
+.pay-qr{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-top:14px;display:none}
+.pay-qr.show{display:block}
+.pay-addr{font-family:'DM Mono',monospace;font-size:10px;color:var(--text);word-break:break-all;background:var(--surface2);padding:8px;border-radius:6px;margin:6px 0}
+.copy-addr{font-size:10px;font-weight:600;color:var(--blue);background:rgba(47,128,237,.1);border:1px solid rgba(47,128,237,.2);padding:5px 12px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.pay-amt{font-family:'DM Mono',monospace;font-size:18px;font-weight:600;color:var(--gold)}
+
+/* ── ADMIN ── */
+.adm-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px}
+.adm-match{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px}
+.adm-meta{font-size:10px;color:var(--muted);margin-bottom:8px}
+.adm-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)}
+.adm-row:last-child{border:none}
+.adm-outcome{font-size:11px;color:var(--text)}
+.adm-exposure{font-family:'DM Mono',monospace;font-size:11px;color:var(--red)}
+.adm-btn{font-size:10px;font-weight:700;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid}
+.adm-btn.settle{background:rgba(39,174,96,.1);color:var(--green);border-color:rgba(39,174,96,.3)}
+.adm-btn.void{background:rgba(224,83,83,.08);color:var(--red);border-color:rgba(224,83,83,.25)}
+.adm-btn.override{background:rgba(47,128,237,.08);color:var(--blue);border-color:rgba(47,128,237,.2)}
+.adm-user-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+.adm-uname{font-size:12px;font-weight:500;color:var(--text)}
+.adm-uemail{font-size:10px;color:var(--muted)}
+.adm-ubal{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--blue)}
+.settle-log-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px}
+.settle-log-item .won{color:var(--green)}
+.settle-log-item .lost{color:var(--red)}
+.settle-log-item .void{color:var(--muted)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--blue);color:var(--text);font-size:12px;font-weight:500;padding:9px 18px;border-radius:8px;z-index:999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:88vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE (hidden until firebase resolves) -->
+<div id="auth-gate">
+  <div class="auth-logo">Narativ<span>.</span></div>
+  <div class="auth-sub">World Cup 2026 · Build narratives. Place bets.</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-in" onclick="switchTab('in')">Sign In</div>
+      <div class="auth-tab"        id="tab-up" onclick="switchTab('up')">Sign Up</div>
+    </div>
+    <div id="name-wrap" style="display:none">
+      <div class="a-field">
+        <label>Display Name</label>
+        <input type="text" id="a-name" placeholder="Your name" autocomplete="name"/>
+      </div>
+    </div>
+    <div class="a-field">
+      <label>Email</label>
+      <input type="email" id="a-email" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')doAuth()"/>
+    </div>
+    <div class="a-field">
+      <label>Password</label>
+      <input type="password" id="a-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()"/>
+    </div>
+    <div class="auth-err" id="a-err"></div>
+    <button class="auth-btn" id="a-btn" onclick="doAuth()">Sign In</button>
+  </div>
+  <div class="auth-wc">⚽ FIFA World Cup 2026 · USA · Canada · Mexico</div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell">
+
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="ticker-track">
+      <div class="ticker-item">WORLD CUP 2026<b>USA · CAN · MEX</b></div>
+      <div class="ticker-item">48 TEAMS · 104 MATCHES<b>Jun–Jul 2026</b></div>
+      <div class="ticker-item">BUILD YOUR NARRATIVE<b>NOW LIVE</b></div>
+      <div class="ticker-item">WORLD CUP 2026<b>USA · CAN · MEX</b></div>
+      <div class="ticker-item">48 TEAMS · 104 MATCHES<b>Jun–Jul 2026</b></div>
+      <div class="ticker-item">BUILD YOUR NARRATIVE<b>NOW LIVE</b></div>
+    </div>
+  </div>
+
+  <div class="topbar">
+    <div class="logo" onclick="nav('home')">Narativ<span>.</span><span class="logo-wc">WC 2026</span></div>
+    <div class="topbar-right">
+      <div class="icon-btn" onclick="nav('slip')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+        <div class="badge" id="slip-badge">0</div>
+      </div>
+      <div class="icon-btn" style="background:rgba(47,128,237,.1);border-color:rgba(47,128,237,.2)" onclick="nav('wallet')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span id="bal-chip" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--blue);padding:0 4px">₦—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <div class="section-hdr">
+      <div class="section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Live &amp; Upcoming
+      </div>
+    </div>
+    <div class="match-scroll" id="home-matches">
+      <div class="loading-msg">Loading matches…</div>
+    </div>
+    <div class="section-hdr" style="margin-top:6px">
+      <div class="section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+        Today's Narratives
+      </div>
+    </div>
+    <div id="narratives-home">
+      <div class="narr-loading"><div class="narr-spinner"></div>Generating narratives…</div>
+    </div>
+  </div>
+
+  <!-- MATCHES -->
+  <div id="page-matches" class="page">
+    <div class="page-title">World Cup 2026</div>
+    <div style="padding:4px 16px 6px">
+      <div class="filter-row">
+        <button class="filter-chip active" onclick="chipFilter(this,'all')">All</button>
+        <button class="filter-chip" onclick="chipFilter(this,'live')">Live</button>
+        <button class="filter-chip" onclick="chipFilter(this,'upcoming')">Upcoming</button>
+        <button class="filter-chip" onclick="chipFilter(this,'finished')">Finished</button>
+      </div>
+    </div>
+    <div id="matches-list"><div class="loading-msg">Loading fixtures…</div></div>
+  </div>
+
+  <!-- BUILD (shows AI narratives for a selected match) -->
+  <div id="page-build" class="page">
+    <div class="page-title">Build Slip</div>
+    <div id="build-match-prompt" style="padding:16px;text-align:center;color:var(--muted);font-size:12px">
+      <div style="font-size:32px;margin-bottom:8px">⚽</div>
+      Go to <b style="color:var(--blue)">Matches</b> and tap <b style="color:var(--blue)">Narratives →</b> on any fixture to load AI-generated narratives here.
+    </div>
+    <div id="build-match-header" style="display:none;padding:12px 16px 0">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Selected Match</div>
+      <div id="build-match-title" style="font-size:15px;font-weight:600;color:var(--text)"></div>
+    </div>
+    <div id="build-narratives" style="padding:10px 16px"></div>
+  </div>
+
+  <!-- SLIP -->
+  <div id="page-slip" class="page">
+    <div class="page-title">Bet Slip</div>
+    <div id="slip-list"></div>
+    <div class="slip-foot" id="slip-foot">
+      <div class="slip-row"><span class="slip-lbl">Total Odds</span><span class="slip-val" id="total-odds">—</span></div>
+      <div class="slip-row" style="border-bottom:none"><span class="slip-lbl">Potential Payout</span><span class="slip-val" id="total-payout">—</span></div>
+      <div class="stake-row">
+        <input class="stake-input" id="stake" type="number" placeholder="Stake (₦)" min="100" oninput="renderSlip()"/>
+      </div>
+      <div class="presets">
+        <button class="preset" onclick="setStake(500)">₦500</button>
+        <button class="preset" onclick="setStake(1000)">₦1k</button>
+        <button class="preset" onclick="setStake(2000)">₦2k</button>
+        <button class="preset" onclick="setStake(5000)">₦5k</button>
+      </div>
+      <button class="place-btn" onclick="placeBet()">Place Bet</button>
+    </div>
+  </div>
+
+  <!-- WALLET -->
+  <div id="page-wallet" class="page">
+    <div class="page-title">Wallet</div>
+    <div class="wallet-hero">
+      <div class="wallet-lbl">Available Balance</div>
+      <div class="wallet-bal" id="w-balance">₦0</div>
+      <div class="wact-row">
+        <button class="wact" onclick="openPaystack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Fund NGN
+        </button>
+        <button class="wact" onclick="openCryptoModal()" style="background:rgba(201,168,76,.1);color:var(--gold);border-color:rgba(201,168,76,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Crypto
+        </button>
+        <button class="wact wact-wd" onclick="toast('Withdrawals coming soon.')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>Withdraw
+        </button>
+      </div>
+    </div>
+    <div class="tx-section">
+      <div class="tx-hdr">Transaction History</div>
+      <div id="tx-list"><div class="loading-msg">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- MY BETS / PROFILE -->
+  <div id="page-profile" class="page">
+    <div class="page-title">Account</div>
+    <div class="profile-hero">
+      <div class="p-avatar" id="p-avatar">?</div>
+      <div><div class="p-name" id="p-name">—</div><div class="p-email" id="p-email">—</div></div>
+    </div>
+    <div class="hist-tabs">
+      <div class="hist-tab active" id="htab-open"     onclick="hTab('open')">Open Bets</div>
+      <div class="hist-tab"        id="htab-settled"  onclick="hTab('settled')">Settled</div>
+    </div>
+    <div class="hist-panel active" id="hpanel-open"><div class="hist-empty">No open bets yet.</div></div>
+    <div class="hist-panel"        id="hpanel-settled"><div class="hist-empty">No settled bets yet.</div></div>
+    <div class="pref-section" style="margin-top:8px">
+      <div class="pref-row" onclick="changeDisplayName()">
+        <span class="pref-lbl">Display Name</span>
+        <span class="pref-val" id="pref-name">—</span>
+      </div>
+      <div class="pref-row" onclick="doSignOut()">
+        <span class="pref-lbl" style="color:var(--red)">Sign Out</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PAGE (role:admin only) -->
+  <div id="page-admin" class="page">
+    <div class="page-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Admin Panel</span>
+      <span style="font-size:10px;font-weight:600;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);padding:3px 8px;border-radius:4px;font-family:'DM Mono',monospace">ADMIN</span>
+    </div>
+
+    <!-- BOOK P&L -->
+    <div style="margin:0 16px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Book Overview</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><div style="font-size:10px;color:var(--muted)">Total Staked</div><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--text)" id="adm-staked">₦0</div></div>
+        <div><div style="font-size:10px;color:var(--muted)">Liability</div><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--red)" id="adm-liability">₦0</div></div>
+        <div><div style="font-size:10px;color:var(--muted)">Net P&amp;L</div><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--green)" id="adm-pnl">₦0</div></div>
+      </div>
+    </div>
+
+    <!-- SETTLEMENT -->
+    <div style="padding:0 16px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Settlement Queue</div>
+      <div id="adm-settle-list"><div style="color:var(--muted);font-size:12px;padding:12px 0">Loading…</div></div>
+    </div>
+
+    <!-- OPEN BETS EXPOSURE -->
+    <div style="padding:0 16px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Open Bets Exposure</div>
+      <div id="adm-exposure"><div style="color:var(--muted);font-size:12px;padding:12px 0">Loading…</div></div>
+    </div>
+
+    <!-- USER MANAGEMENT -->
+    <div style="padding:0 16px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Recent Users</div>
+      <div id="adm-users"><div style="color:var(--muted);font-size:12px;padding:12px 0">Loading…</div></div>
+    </div>
+
+    <!-- SETTLEMENT LOG -->
+    <div style="padding:0 16px;margin-bottom:24px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Settlement Log</div>
+      <div id="adm-settle-log"><div style="color:var(--muted);font-size:12px;padding:12px 0">No settlements yet.</div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-home"    onclick="nav('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+    </button>
+    <button class="nav-item" id="nav-matches"  onclick="nav('matches')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Matches
+    </button>
+    <div class="nav-center" onclick="nav('build')">
+      <button class="nav-build-btn" id="nav-build">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+      </button>
+      <span class="nav-build-lbl">BUILD</span>
+    </div>
+    <button class="nav-item" id="nav-wallet"   onclick="nav('wallet')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Wallet
+    </button>
+    <button class="nav-item" id="nav-profile"  onclick="nav('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </button>
+    <button class="nav-item" id="nav-admin" onclick="nav('admin')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Admin
+    </button>
+  </div>
+
+</div><!-- /app-shell -->
+
+<!-- CRYPTO MODAL -->
+<div class="modal-overlay" id="crypto-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('crypto-modal').classList.remove('show')">✕ Close</button>
+    <div class="modal-title">Crypto Deposit</div>
+    <div class="modal-sub">Sandbox · USDT or SOL via NOWPayments</div>
+    <div class="crypto-opts">
+      <div class="crypto-opt sel" id="opt-usdt" onclick="selectCrypto('USDT')"><div class="crypto-sym">USDT</div><div class="crypto-name">Tether</div></div>
+      <div class="crypto-opt"    id="opt-sol"  onclick="selectCrypto('SOL')"><div class="crypto-sym">SOL</div><div class="crypto-name">Solana</div></div>
+    </div>
+    <div class="a-field">
+      <label>Amount (₦)</label>
+      <input class="stake-input" type="number" id="crypto-ngn" placeholder="e.g. 5000" min="500" style="width:100%"/>
+    </div>
+    <button class="place-btn" onclick="initCryptoPayment()">Generate Address</button>
+    <div class="pay-qr" id="pay-qr">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Amount to send:</div>
+      <div class="pay-amt" id="pay-amt">—</div>
+      <div style="font-size:10px;color:var(--muted);margin:10px 0 4px">Send to address:</div>
+      <div class="pay-addr" id="pay-addr">—</div>
+      <button class="copy-addr" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('pay-addr').textContent);toast('Copied!')">Copy Address</button>
+      <div style="font-size:10px;color:var(--muted);margin-top:10px">Sandbox: balance credited in ~3 seconds after address is shown.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-el"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────
+var FB_CONFIG = {
+  apiKey:            "AIzaSyAcjOIsOnDl_-kCMGnTM4zLHudog-reues",
+  authDomain:        "narativ-ac258.firebaseapp.com",
+  projectId:         "narativ-ac258",
+  storageBucket:     "narativ-ac258.firebasestorage.app",
+  messagingSenderId: "887258996075",
+  appId:             "1:887258996075:web:dd5b9dc793188d297a802e"
+};
+var RAPID_KEY    = "a7653a8d25msh386445ae2ed7381p1cd57fjsn35435810825d";
+var RAPID_HOST   = "api-football-v1.p.rapidapi.com";
+// All API calls go through Vercel proxy — solves CORS
+var RAPID_BASE   = "https://bet24-red.vercel.app/api/football";
+var WC_LEAGUE    = 1;
+var WC_SEASON    = 2026;
+var GROQ_KEY     = "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";
+var GROQ_BASE    = "https://api.groq.com/openai/v1/chat/completions";
+var GROQ_MODEL   = "llama-3.3-70b-versatile";
+var PAYSTACK_KEY = "pk_test_72f43800b5a106059fbf92cb76dcec3918b9d42f";
+var NOW_KEY      = "KTCR50C-S7GMGAA-HHHBBAH-A5F0X6Y";
+var NOW_BASE     = "https://api.sandbox.nowpayments.io/v1";
+var HOUSE_MARGIN = 0.10;
+
+// ─── KNOWN ACCURATE FIXTURES (updated with real results) ──────
+// Source: ESPN/BBC, Jun 12 2026. Updated as results come in.
+var KNOWN_FIXTURES = [
+  // ── GROUP A ──
+  { id:90001, home:'Mexico',      away:'South Africa', hCode:'MEX', aCode:'RSA', hScore:2, aScore:0, status:'FT',  date:'2026-06-11T20:00:00-05:00', round:'Group A', elapsed:90,   venue:'Estadio Azteca, Mexico City' },
+  { id:90002, home:'South Korea', away:'Czechia',      hCode:'KOR', aCode:'CZE', hScore:2, aScore:1, status:'FT',  date:'2026-06-12T01:00:00+00:00', round:'Group A', elapsed:90,   venue:'Estadio BBVA, Guadalajara' },
+  { id:90003, home:'Mexico',      away:'South Korea',  hCode:'MEX', aCode:'KOR', hScore:null, aScore:null, status:'NS', date:'2026-06-18T20:00:00-06:00', round:'Group A', elapsed:null, venue:'Estadio BBVA, Guadalajara' },
+  { id:90004, home:'South Africa',away:'Czechia',      hCode:'RSA', aCode:'CZE', hScore:null, aScore:null, status:'NS', date:'2026-06-18T19:00:00-05:00', round:'Group A', elapsed:null, venue:'Mercedes-Benz Stadium, Atlanta' },
+  { id:90005, home:'South Korea', away:'South Africa', hCode:'KOR', aCode:'RSA', hScore:null, aScore:null, status:'NS', date:'2026-06-25T00:00:00+00:00', round:'Group A', elapsed:null, venue:'Estadio BBVA, Guadalajara' },
+  { id:90006, home:'Mexico',      away:'Czechia',      hCode:'MEX', aCode:'CZE', hScore:null, aScore:null, status:'NS', date:'2026-06-25T00:00:00+00:00', round:'Group A', elapsed:null, venue:'SoFi Stadium, Los Angeles' },
+  // ── GROUP B ──
+  { id:90011, home:'Canada',     away:'Bosnia & Herz.', hCode:'CAN', aCode:'BIH', hScore:null, aScore:null, status:'NS', date:'2026-06-12T19:00:00-04:00', round:'Group B', elapsed:null, venue:'BMO Field, Toronto' },
+  { id:90012, home:'Qatar',      away:'Switzerland',   hCode:'QAT', aCode:'SUI', hScore:null, aScore:null, status:'NS', date:'2026-06-13T15:00:00-07:00', round:'Group B', elapsed:null, venue:"Levi's Stadium, San Francisco" },
+  { id:90013, home:'Switzerland',away:'Bosnia & Herz.', hCode:'SUI', aCode:'BIH', hScore:null, aScore:null, status:'NS', date:'2026-06-18T15:00:00-07:00', round:'Group B', elapsed:null, venue:'SoFi Stadium, Los Angeles' },
+  { id:90014, home:'Canada',     away:'Qatar',         hCode:'CAN', aCode:'QAT', hScore:null, aScore:null, status:'NS', date:'2026-06-18T22:00:00-04:00', round:'Group B', elapsed:null, venue:'BC Place, Vancouver' },
+  { id:90015, home:'Bosnia & Herz.',away:'Qatar',      hCode:'BIH', aCode:'QAT', hScore:null, aScore:null, status:'NS', date:'2026-06-24T00:00:00+00:00', round:'Group B', elapsed:null, venue:'BMO Field, Toronto' },
+  { id:90016, home:'Switzerland',away:'Canada',        hCode:'SUI', aCode:'CAN', hScore:null, aScore:null, status:'NS', date:'2026-06-24T00:00:00+00:00', round:'Group B', elapsed:null, venue:'SoFi Stadium, Los Angeles' },
+  // ── GROUP C ──
+  { id:90021, home:'Brazil',  away:'Morocco', hCode:'BRA', aCode:'MAR', hScore:null, aScore:null, status:'NS', date:'2026-06-13T22:00:00+00:00', round:'Group C', elapsed:null, venue:'MetLife Stadium, New Jersey' },
+  { id:90022, home:'Haiti',   away:'Scotland',hCode:'HAI', aCode:'SCO', hScore:null, aScore:null, status:'NS', date:'2026-06-14T01:00:00+00:00', round:'Group C', elapsed:null, venue:'Gillette Stadium, Boston' },
+  { id:90023, home:'Brazil',  away:'Haiti',   hCode:'BRA', aCode:'HAI', hScore:null, aScore:null, status:'NS', date:'2026-06-20T01:00:00+00:00', round:'Group C', elapsed:null, venue:'Lincoln Financial Field, Philadelphia' },
+  { id:90024, home:'Morocco', away:'Scotland',hCode:'MAR', aCode:'SCO', hScore:null, aScore:null, status:'NS', date:'2026-06-19T23:00:00+00:00', round:'Group C', elapsed:null, venue:'Gillette Stadium, Boston' },
+  // ── GROUP D ──
+  { id:90031, home:'USA',      away:'Paraguay', hCode:'USA', aCode:'PAR', hScore:null, aScore:null, status:'NS', date:'2026-06-13T01:00:00+00:00', round:'Group D', elapsed:null, venue:'SoFi Stadium, Los Angeles' },
+  { id:90032, home:'Australia',away:'Türkiye',  hCode:'AUS', aCode:'TUR', hScore:null, aScore:null, status:'NS', date:'2026-06-14T04:00:00+00:00', round:'Group D', elapsed:null, venue:'BC Place, Vancouver' },
+  { id:90033, home:'USA',      away:'Australia',hCode:'USA', aCode:'AUS', hScore:null, aScore:null, status:'NS', date:'2026-06-20T00:00:00+00:00', round:'Group D', elapsed:null, venue:'Lumen Field, Seattle' },
+  { id:90034, home:'Türkiye',  away:'Paraguay', hCode:'TUR', aCode:'PAR', hScore:null, aScore:null, status:'NS', date:'2026-06-20T04:00:00+00:00', round:'Group D', elapsed:null, venue:"Levi's Stadium, San Francisco" },
+  // ── GROUP E ──
+  { id:90041, home:'Germany',    away:'Curaçao',    hCode:'GER', aCode:'CUW', hScore:null, aScore:null, status:'NS', date:'2026-06-14T18:00:00-05:00', round:'Group E', elapsed:null, venue:'NRG Stadium, Houston' },
+  { id:90042, home:'Ivory Coast',away:'Ecuador',    hCode:'CIV', aCode:'ECU', hScore:null, aScore:null, status:'NS', date:'2026-06-15T00:00:00+00:00', round:'Group E', elapsed:null, venue:'Lincoln Financial Field, Philadelphia' },
+  { id:90043, home:'Germany',    away:'Ivory Coast',hCode:'GER', aCode:'CIV', hScore:null, aScore:null, status:'NS', date:'2026-06-23T01:00:00+00:00', round:'Group E', elapsed:null, venue:'BMO Field, Toronto' },
+  { id:90044, home:'Ecuador',    away:'Curaçao',    hCode:'ECU', aCode:'CUW', hScore:null, aScore:null, status:'NS', date:'2026-06-23T01:00:00+00:00', round:'Group E', elapsed:null, venue:'SoFi Stadium, Los Angeles' },
+  // ── GROUP F ──
+  { id:90051, home:'Netherlands',away:'Japan',       hCode:'NED', aCode:'JPN', hScore:null, aScore:null, status:'NS', date:'2026-06-14T21:00:00-05:00', round:'Group F', elapsed:null, venue:'AT&T Stadium, Dallas' },
+  { id:90052, home:'Sweden',     away:'Tunisia',     hCode:'SWE', aCode:'TUN', hScore:null, aScore:null, status:'NS', date:'2026-06-15T03:00:00+00:00', round:'Group F', elapsed:null, venue:'Estadio BBVA, Guadalajara' },
+  { id:90053, home:'Netherlands',away:'Sweden',      hCode:'NED', aCode:'SWE', hScore:null, aScore:null, status:'NS', date:'2026-06-21T00:00:00+00:00', round:'Group F', elapsed:null, venue:'NRG Stadium, Houston' },
+  { id:90054, home:'Japan',      away:'Tunisia',     hCode:'JPN', aCode:'TUN', hScore:null, aScore:null, status:'NS', date:'2026-06-21T00:00:00+00:00', round:'Group F', elapsed:null, venue:'AT&T Stadium, Dallas' },
+  // ── GROUP G ──
+  { id:90061, home:'Belgium',     away:'Egypt',       hCode:'BEL', aCode:'EGY', hScore:null, aScore:null, status:'NS', date:'2026-06-15T20:00:00-07:00', round:'Group G', elapsed:null, venue:'Lumen Field, Seattle' },
+  { id:90062, home:'Saudi Arabia',away:'Uruguay',     hCode:'KSA', aCode:'URU', hScore:null, aScore:null, status:'NS', date:'2026-06-15T23:00:00+00:00', round:'Group G', elapsed:null, venue:'Hard Rock Stadium, Miami' },
+  { id:90063, home:'Belgium',     away:'Saudi Arabia',hCode:'BEL', aCode:'KSA', hScore:null, aScore:null, status:'NS', date:'2026-06-21T22:00:00+00:00', round:'Group G', elapsed:null, venue:'Lumen Field, Seattle' },
+  { id:90064, home:'Uruguay',     away:'Egypt',       hCode:'URU', aCode:'EGY', hScore:null, aScore:null, status:'NS', date:'2026-06-21T22:00:00+00:00', round:'Group G', elapsed:null, venue:'Hard Rock Stadium, Miami' },
+  // ── GROUP H ──
+  { id:90071, home:'Spain',        away:'Cape Verde', hCode:'ESP', aCode:'CPV', hScore:null, aScore:null, status:'NS', date:'2026-06-15T17:00:00-04:00', round:'Group H', elapsed:null, venue:'Mercedes-Benz Stadium, Atlanta' },
+  { id:90072, home:'Saudi Arabia', away:'Uruguay',    hCode:'KSA', aCode:'URU', hScore:null, aScore:null, status:'NS', date:'2026-06-15T23:00:00+00:00', round:'Group H', elapsed:null, venue:'Hard Rock Stadium, Miami' },
+  // ── GROUP I ──
+  { id:90081, home:'France', away:'Senegal',hCode:'FRA', aCode:'SEN', hScore:null, aScore:null, status:'NS', date:'2026-06-16T19:00:00-04:00', round:'Group I', elapsed:null, venue:'MetLife Stadium, New Jersey' },
+  { id:90082, home:'Iraq',   away:'Norway', hCode:'IRQ', aCode:'NOR', hScore:null, aScore:null, status:'NS', date:'2026-06-16T22:00:00+00:00', round:'Group I', elapsed:null, venue:'Gillette Stadium, Boston' },
+  { id:90083, home:'France', away:'Iraq',   hCode:'FRA', aCode:'IRQ', hScore:null, aScore:null, status:'NS', date:'2026-06-22T22:00:00+00:00', round:'Group I', elapsed:null, venue:'MetLife Stadium, New Jersey' },
+  { id:90084, home:'Norway', away:'Senegal',hCode:'NOR', aCode:'SEN', hScore:null, aScore:null, status:'NS', date:'2026-06-22T22:00:00+00:00', round:'Group I', elapsed:null, venue:'Gillette Stadium, Boston' },
+  // ── GROUP J ──
+  { id:90091, home:'Argentina',away:'Algeria',hCode:'ARG', aCode:'ALG', hScore:null, aScore:null, status:'NS', date:'2026-06-17T01:00:00+00:00', round:'Group J', elapsed:null, venue:'Arrowhead Stadium, Kansas City' },
+  { id:90092, home:'Austria',  away:'Jordan', hCode:'AUT', aCode:'JOR', hScore:null, aScore:null, status:'NS', date:'2026-06-17T04:00:00+00:00', round:'Group J', elapsed:null, venue:"Levi's Stadium, San Francisco" },
+  { id:90093, home:'Argentina',away:'Austria',hCode:'ARG', aCode:'AUT', hScore:null, aScore:null, status:'NS', date:'2026-06-23T22:00:00+00:00', round:'Group J', elapsed:null, venue:'Arrowhead Stadium, Kansas City' },
+  { id:90094, home:'Algeria',  away:'Jordan', hCode:'ALG', aCode:'JOR', hScore:null, aScore:null, status:'NS', date:'2026-06-23T22:00:00+00:00', round:'Group J', elapsed:null, venue:"Levi's Stadium, San Francisco" },
+  // ── GROUP K ──
+  { id:90101, home:'Portugal',  away:'DR Congo',  hCode:'POR', aCode:'COD', hScore:null, aScore:null, status:'NS', date:'2026-06-17T18:00:00-05:00', round:'Group K', elapsed:null, venue:'NRG Stadium, Houston' },
+  { id:90102, home:'Uzbekistan',away:'Colombia',  hCode:'UZB', aCode:'COL', hScore:null, aScore:null, status:'NS', date:'2026-06-18T03:00:00+00:00', round:'Group K', elapsed:null, venue:'Estadio Azteca, Mexico City' },
+  { id:90103, home:'Portugal',  away:'Uzbekistan',hCode:'POR', aCode:'UZB', hScore:null, aScore:null, status:'NS', date:'2026-06-24T00:00:00+00:00', round:'Group K', elapsed:null, venue:'NRG Stadium, Houston' },
+  { id:90104, home:'Colombia',  away:'DR Congo',  hCode:'COL', aCode:'COD', hScore:null, aScore:null, status:'NS', date:'2026-06-24T00:00:00+00:00', round:'Group K', elapsed:null, venue:'SoFi Stadium, Los Angeles' },
+  // ── GROUP L ──
+  { id:90111, home:'England',away:'Croatia',hCode:'ENG', aCode:'CRO', hScore:null, aScore:null, status:'NS', date:'2026-06-17T21:00:00-05:00', round:'Group L', elapsed:null, venue:'AT&T Stadium, Dallas' },
+  { id:90112, home:'Ghana',  away:'Panama', hCode:'GHA', aCode:'PAN', hScore:null, aScore:null, status:'NS', date:'2026-06-18T00:00:00+00:00', round:'Group L', elapsed:null, venue:'BMO Field, Toronto' },
+  { id:90113, home:'England',away:'Ghana',  hCode:'ENG', aCode:'GHA', hScore:null, aScore:null, status:'NS', date:'2026-06-23T21:00:00-05:00', round:'Group L', elapsed:null, venue:'AT&T Stadium, Dallas' },
+  { id:90114, home:'Croatia',away:'Panama', hCode:'CRO', aCode:'PAN', hScore:null, aScore:null, status:'NS', date:'2026-06-24T00:00:00+00:00', round:'Group L', elapsed:null, venue:'BMO Field, Toronto' },
+  // Matchday 3 placeholders
+  { id:90121, home:'England',away:'Panama', hCode:'ENG', aCode:'PAN', hScore:null, aScore:null, status:'NS', date:'2026-06-27T22:00:00+00:00', round:'Group L', elapsed:null, venue:'MetLife Stadium, New Jersey' },
+  { id:90122, home:'Croatia',away:'Ghana',  hCode:'CRO', aCode:'GHA', hScore:null, aScore:null, status:'NS', date:'2026-06-27T22:00:00+00:00', round:'Group L', elapsed:null, venue:'BMO Field, Toronto' }
+];
+
+
+// ─── STATE ────────────────────────────────────────────────────
+var auth, db;
+var currentUser = null, userData = {}, fbReady = false;
+// matches starts populated — never empty, never a loading spinner on render
+var matches = KNOWN_FIXTURES.slice();
+var slip = [], narrativeCache = {}, liveTimer = null;
+var _authMode = 'in', _selCrypto = 'USDT', _filterMode = 'all';
+var _ncache = {};
+
+// ─── FIREBASE ─────────────────────────────────────────────────
+function initFirebase() {
+  try {
+    var app = (firebase.apps && firebase.apps.length) ? firebase.apps[0] : firebase.initializeApp(FB_CONFIG);
+    auth = firebase.auth();
+    db   = firebase.firestore();
+    fbReady = true;
+    auth.onAuthStateChanged(function(user) {
+      if (user) {
+        currentUser = user;
+        loadUserData().then(function() {
+          showApp();
+          fetchMatches();
+          liveTimer = setInterval(function() {
+            var hasLive = matches.some(function(m) { return isLive(norm(m).status); });
+            var interval = hasLive ? 300000 : 1800000; // 5min live, 30min idle
+            var sinceLastFetch = Date.now() - _lastFetch;
+            if (sinceLastFetch >= interval) {
+              // Clear narrative cache for live matches so events trigger regeneration
+              if (hasLive) {
+                matches.forEach(function(m) {
+                  var md = norm(m);
+                  if (isLive(md.status)) {
+                    Object.keys(narrativeCache).forEach(function(k) {
+                      if (k.indexOf('fix_' + md.id) === 0) delete narrativeCache[k];
+                    });
+                    // Clear events cache so fresh events are fetched
+                    delete _eventsCache['ev_' + md.id];
+                  }
+                });
+              }
+              fetchMatches();
+            }
+          }, 30000);
+        });
+      } else {
+        currentUser = null;
+        clearInterval(liveTimer);
+        showAuth();
+      }
+    });
+  } catch(e) {
+    console.error('Firebase error:', e);
+    showAuth();
+    document.getElementById('a-err').textContent = 'Connection error: ' + e.message;
+  }
+}
+
+function showAuth() { document.getElementById('auth-gate').classList.add('show'); document.getElementById('app-shell').classList.remove('show'); }
+function showApp()  { document.getElementById('auth-gate').classList.remove('show'); document.getElementById('app-shell').classList.add('show'); renderSlip(); updateSlipBadge(); }
+
+// ─── AUTH FORM ────────────────────────────────────────────────
+function switchTab(mode) {
+  _authMode = mode;
+  document.getElementById('tab-in').classList.toggle('active', mode === 'in');
+  document.getElementById('tab-up').classList.toggle('active', mode === 'up');
+  document.getElementById('name-wrap').style.display = mode === 'up' ? 'block' : 'none';
+  document.getElementById('a-err').textContent = '';
+  var btn = document.getElementById('a-btn');
+  btn.textContent = mode === 'up' ? 'Create Account' : 'Sign In';
+  btn.setAttribute('onclick', 'doAuth()');
+}
+
+function doAuth() {
+  var email = (document.getElementById('a-email').value || '').trim();
+  var pass  = document.getElementById('a-pass').value || '';
+  var name  = (document.getElementById('a-name').value || '').trim() || 'Player';
+  var errEl = document.getElementById('a-err');
+  var btn   = document.getElementById('a-btn');
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Enter your email.'; return; }
+  if (!pass)  { errEl.textContent = 'Enter your password.'; return; }
+  if (_authMode === 'up' && pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!fbReady) { errEl.textContent = 'Connecting to Firebase… try again in a moment.'; return; }
+  btn.disabled = true; btn.textContent = '…';
+
+  if (_authMode === 'in') {
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(function(e) { errEl.textContent = fberr(e.code); btn.disabled=false; btn.textContent='Sign In'; });
+  } else {
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then(function(cred) {
+        var uid = cred.user.uid;
+        cred.user.updateProfile({ displayName: name }).catch(function(){});
+        db.collection('users').doc(uid).set({
+          displayName: name, email: email, balance: 5000, role: 'user',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(){});
+        db.collection('transactions').add({
+          uid: uid, type: 'deposit', amount: 5000, currency: 'NGN',
+          provider: 'demo_bonus', status: 'completed',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(){});
+        // onAuthStateChanged fires automatically
+      })
+      .catch(function(e) { errEl.textContent = fberr(e.code); btn.disabled=false; btn.textContent='Create Account'; });
+  }
+}
+
+function fberr(code) {
+  return ({
+    'auth/wrong-password':'Wrong password.',
+    'auth/user-not-found':'No account with that email.',
+    'auth/email-already-in-use':'Email already registered — try Sign In.',
+    'auth/weak-password':'Password must be 6+ characters.',
+    'auth/invalid-email':'Invalid email address.',
+    'auth/invalid-credential':'Invalid email or password.',
+    'auth/too-many-requests':'Too many attempts — try again later.',
+    'auth/network-request-failed':'Network error — check your connection.',
+    'auth/operation-not-allowed':'Email sign-up not enabled — go to Firebase Console → Auth → Sign-in methods → enable Email/Password.'
+  })[code] || ('Error: ' + code);
+}
+
+function doSignOut() { if (auth) auth.signOut(); }
+
+// ─── USER DATA ────────────────────────────────────────────────
+function loadUserData() {
+  if (!currentUser || !db) return Promise.resolve();
+  return db.collection('users').doc(currentUser.uid).get().then(function(snap) {
+    userData = snap.exists ? snap.data() : { displayName: currentUser.displayName||'Player', email:currentUser.email||'', balance:5000, role:'user' };
+    if (!snap.exists) db.collection('users').doc(currentUser.uid).set(Object.assign({}, userData, {createdAt:firebase.firestore.FieldValue.serverTimestamp()})).catch(function(){});
+    renderProfile(); renderWalletBalance(); renderBalChip();
+    // Show admin nav if user is admin
+    if (userData.role === 'admin') {
+      var adminNav = document.getElementById('nav-admin');
+      if (adminNav) adminNav.style.display = 'flex';
+    }
+  }).catch(function() {
+    userData = { displayName: currentUser.displayName||'Player', email:currentUser.email||'', balance:0, role:'user' };
+    renderProfile(); renderWalletBalance();
+  });
+}
+
+// ─── MATCH DATA STRATEGY ──────────────────────────────────────
+// matches is pre-seeded with KNOWN_FIXTURES at startup (see STATE above)
+// fetchMatches: renders immediately from whatever is in matches,
+// then fires API in background to upgrade with live data
+
+var _lastFetch = 0;
+
+function fetchMatches() {
+  // Always render what we have right now — never wait
+  renderMatchesUnified();
+  renderNarrativesHome();
+  renderTickerLive();
+
+  var now = Date.now();
+  if (now - _lastFetch < 60000) return; // don't hammer the API
+  _lastFetch = now;
+  fetchFromAPI();
+}
+
+function saveCacheToFirestore(fixtureList) {
+  if (!fbReady || !db) return;
+  // Flatten to plain objects safe for Firestore
+  var safe = fixtureList.map(function(m) {
+    return {
+      id: m.id, home: m.home, away: m.away,
+      hCode: m.hCode || (m.home||'').slice(0,3).toUpperCase(),
+      aCode: m.aCode || (m.away||'').slice(0,3).toUpperCase(),
+      hScore: m.hScore !== undefined ? m.hScore : null,
+      aScore: m.aScore !== undefined ? m.aScore : null,
+      status: m.status || 'NS',
+      elapsed: m.elapsed || null,
+      date: m.date || '',
+      round: m.round || 'Group Stage',
+      venue: m.venue || ''
+    };
+  });
+  db.collection('_cache').doc('wc2026_fixtures').set({
+    fixtures: safe,
+    updatedAt: Date.now(),
+    count: safe.length
+  }).catch(function(e) { console.warn('[Narativ] Cache write failed:', e.message); });
+}
+
+// All API calls go through Vercel proxy — no CORS, no auth headers needed
+function apiURL(endpoint, params) {
+  var url = RAPID_BASE + '?endpoint=' + endpoint;
+  if (params) url += '&' + params;
+  return url;
+}
+
+function fetchFromAPI() {
+  fetch(apiURL('fixtures', 'league=' + WC_LEAGUE + '&season=' + WC_SEASON))
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      if (data.errors && data.errors.rateLimit) {
+        console.warn('[Narativ] Rate limit hit'); return;
+      }
+      var fixtures = data.response || [];
+      console.log('[Narativ] API returned', fixtures.length, 'fixtures');
+      if (fixtures.length >= 2) {
+        fixtures.sort(function(a,b) { return new Date(a.fixture.date) - new Date(b.fixture.date); });
+        matches = fixtures.map(pfix);
+        saveCacheToFirestore(matches);
+        renderMatchesUnified();
+        renderTickerLive();
+        renderNarrativesHome();
+        checkAutoSettlement();
+        var ft = matches.filter(function(m){return isFT(m.status);}).length;
+        var lv = matches.filter(function(m){return isLive(m.status);}).length;
+        console.log('[Narativ] ' + ft + ' FT, ' + lv + ' live, ' + (matches.length-ft-lv) + ' upcoming');
+      } else {
+        console.warn('[Narativ] API returned 0 fixtures — check proxy or daily limit');
+      }
+    })
+    .catch(function(e) {
+      console.warn('[Narativ] fetchFromAPI error:', e.message);
+    });
+}
+
+
+// ─── HELPERS ──────────────────────────────────────────────────
+function isLive(s){ return ['1H','2H','HT','ET','P','BT'].indexOf(s) >= 0; }
+function isFT(s)  { return s==='FT' || s==='AET' || s==='PEN'; }
+
+// Normalise: works for both raw RapidAPI objects and our flat KNOWN_FIXTURES objects
+function norm(f) {
+  if (f && f.fixture) return pfix(f); // raw API shape
+  return f; // already flat
+}
+
+// Parse raw RapidAPI fixture object into flat shape
+function pfix(f) {
+  return {
+    id:      f.fixture.id,
+    status:  f.fixture.status.short,
+    elapsed: f.fixture.status.elapsed,
+    date:    f.fixture.date,
+    home:    f.teams.home.name,
+    hCode:   (f.teams.home.name||'').slice(0,3).toUpperCase(),
+    hScore:  f.goals.home,
+    away:    f.teams.away.name,
+    aCode:   (f.teams.away.name||'').slice(0,3).toUpperCase(),
+    aScore:  f.goals.away,
+    round:   (f.league && f.league.round) || 'Group Stage',
+    venue:   (f.fixture.venue && (f.fixture.venue.name || f.fixture.venue.city)) || ''
+  };
+}
+
+function fmtTime(d) {
+  try { return new Date(d).toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC'; }
+  catch(e) { return '--'; }
+}
+function fmtDate(d) {
+  try {
+    var dt = new Date(d);
+    return dt.toLocaleDateString('en-NG',{day:'numeric',month:'short',timeZone:'UTC'})
+           +' · '+dt.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC';
+  } catch(e) { return '--'; }
+}
+
+function renderTickerLive() {
+  var t = document.getElementById('ticker-track'); if (!t) return;
+  var items = matches.slice(0,12).map(function(f) {
+    var m = norm(f);
+    if (isLive(m.status)) return '<div class="ticker-item"><span class="live-dot"></span>'+m.hCode+' <b style="color:var(--green)">'+m.hScore+'</b> \u2013 '+m.aCode+' <b style="color:var(--green)">'+m.aScore+'</b><b>'+m.elapsed+"'</b></div>";
+    if (isFT(m.status))   return '<div class="ticker-item">'+m.hCode+' <b>'+m.hScore+'</b> \u2013 '+m.aCode+' <b>'+m.aScore+'</b><b style="color:var(--green)"> FT</b></div>';
+    return '<div class="ticker-item">'+m.home+' vs '+m.away+'<b>'+fmtTime(m.date)+'</b></div>';
+  });
+  while (items.length < 6) items = items.concat(items.slice());
+  t.innerHTML = items.join('') + items.join('');
+}
+
+function renderMatchListFiltered() {
+  var c = document.getElementById('matches-list'); if (!c) return;
+  var list = matches.map(norm).filter(function(m){
+    if (_filterMode==='live')     return isLive(m.status);
+    if (_filterMode==='upcoming') return m.status==='NS'||m.status==='TBD';
+    if (_filterMode==='finished') return isFT(m.status);
+    return true;
+  });
+  if (!list.length) { c.innerHTML='<div class="loading-msg">No matches in this view.</div>'; return; }
+  list.sort(function(a,b){
+    var al=isLive(a.status)?0:isFT(a.status)?2:1;
+    var bl=isLive(b.status)?0:isFT(b.status)?2:1;
+    if (al!==bl) return al-bl;
+    return new Date(a.date)-new Date(b.date);
+  });
+  var groups={};
+  list.forEach(function(m){ if(!groups[m.round])groups[m.round]=[]; groups[m.round].push(m); });
+  var sortedKeys = Object.keys(groups).sort(function(a,b){ return a.localeCompare(b); });
+  c.innerHTML = sortedKeys.map(function(r){
+    return '<div class="match-group-lbl">'+r+'</div><div class="match-full-list">'+
+      groups[r].map(function(m){
+        var live=isLive(m.status), ft=isFT(m.status);
+        var hs=m.hScore!=null?m.hScore:'\u2014', as=m.aScore!=null?m.aScore:'\u2014';
+        var st=live?'<span class="live-pill">LIVE '+m.elapsed+"'</span>":ft?'<span class="ko-pill" style="color:var(--green)">FT</span>':'<span class="ko-pill">'+fmtDate(m.date)+'</span>';
+        return '<div class="mfr" onclick="openMatchNarratives('+m.id+')">'+
+          '<div class="mfr-status">'+st+'</div>'+
+          '<div class="mfr-teams">'+
+            '<div class="mfr-team"><span class="mfr-name">'+m.home+'</span><span class="mfr-score '+(ft&&m.hScore>m.aScore?'win':'')+'">'+hs+'</span></div>'+
+            '<div class="mfr-team"><span class="mfr-name">'+m.away+'</span><span class="mfr-score '+(ft&&m.aScore>m.hScore?'win':'')+'">'+as+'</span></div>'+
+          '</div>'+
+          '<button class="add-btn" onclick="event.stopPropagation();openMatchNarratives('+m.id+')">Narratives \u2192</button>'+
+        '</div>';
+      }).join('')+'</div>';
+  }).join('');
+}
+
+function chipFilter(el, mode) {
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active'); _filterMode=mode; renderMatchListFiltered();
+}
+
+// ─── RENDER: HOME MATCHES ──────────────────────────────────────
+function renderMatchesUnified() {
+  var live=[], upcoming=[], finished=[];
+  matches.forEach(function(f){
+    var m=norm(f);
+    if(isLive(m.status)) live.push(m);
+    else if(isFT(m.status)) finished.push(m);
+    else upcoming.push(m);
+  });
+  // Show live first, then upcoming by date, then finished
+  upcoming.sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+  var ordered = live.concat(upcoming).concat(finished);
+  var c = document.getElementById('home-matches');
+  c.innerHTML = ordered.slice(0,10).map(matchCardHTML).join('');
+  renderMatchListFiltered();
+}
+
+function matchCardHTML(m) {
+  var live=isLive(m.status), ft=isFT(m.status);
+  var st = live
+    ? '<div class="m-status live">\u25cf '+m.elapsed+"'</div>"
+    : ft
+    ? '<div class="ft-pill">FT</div>'
+    : '<div class="m-status">'+fmtTime(m.date)+'</div>';
+  var hs = m.hScore != null ? m.hScore : '\u2014';
+  var as = m.aScore != null ? m.aScore : '\u2014';
+  return '<div class="match-card" onclick="openMatchNarratives('+m.id+')">' +
+    '<div class="match-league"><div class="wc-badge">'+m.round.replace('Group ','Grp ')+'</div>'+st+'</div>' +
+    '<div class="match-teams">' +
+      '<div class="match-row"><div><span class="team-abbr">'+m.hCode+'</span><span class="team-name">'+m.home+'</span></div><div class="score '+(ft&&m.hScore>m.aScore?'win':'')+'">'+hs+'</div></div>' +
+      '<div class="match-row"><div><span class="team-abbr">'+m.aCode+'</span><span class="team-name">'+m.away+'</span></div><div class="score '+(ft&&m.aScore>m.hScore?'win':'')+'">'+as+'</div></div>' +
+    '</div>' +
+    '<div class="match-bar"><div class="match-bar-fill" style="width:'+(ft?'100%':live?'55%':'8%')+';background:'+(ft?'var(--muted)':live?'var(--green)':'var(--blue)')+'"></div></div>' +
+  '</div>';
+}
+
+// ─── RENDER: MATCHES LIST (filter-aware) ─────────────────────
+function renderMatchListFiltered() {
+  var c = document.getElementById('matches-list');
+  if (!c) return;
+  var list = matches.map(norm).filter(function(m){
+    if (_filterMode === 'live')     return isLive(m.status);
+    if (_filterMode === 'upcoming') return m.status === 'NS' || m.status === 'TBD';
+    if (_filterMode === 'finished') return isFT(m.status);
+    return true; // 'all'
+  });
+  if (!list.length) { c.innerHTML = '<div class="loading-msg">No matches in this view.</div>'; return; }
+  // Sort: live first, then by date ascending
+  list.sort(function(a, b) {
+    var al = isLive(a.status) ? 0 : isFT(a.status) ? 2 : 1;
+    var bl = isLive(b.status) ? 0 : isFT(b.status) ? 2 : 1;
+    if (al !== bl) return al - bl;
+    return new Date(a.date) - new Date(b.date);
+  });
+  var groups = {};
+  list.forEach(function(m) { if (!groups[m.round]) groups[m.round] = []; groups[m.round].push(m); });
+  // Sort groups A-L
+  var sortedGroups = Object.keys(groups).sort(function(a,b){ return a.localeCompare(b); });
+  c.innerHTML = sortedGroups.map(function(r) {
+    return '<div class="match-group-lbl">'+r+'</div><div class="match-full-list">' +
+      groups[r].map(function(m) {
+        var live=isLive(m.status), ft=isFT(m.status);
+        var hs = m.hScore != null ? m.hScore : '\u2014';
+        var as = m.aScore != null ? m.aScore : '\u2014';
+        var st = live
+          ? '<span class="live-pill">LIVE '+m.elapsed+"'</span>"
+          : ft
+          ? '<span class="ko-pill" style="color:var(--green)">FT</span>'
+          : '<span class="ko-pill">'+fmtDate(m.date)+'</span>';
+        return '<div class="mfr" onclick="openMatchNarratives('+m.id+')">' +
+          '<div class="mfr-status">'+st+'</div>' +
+          '<div class="mfr-teams">' +
+            '<div class="mfr-team"><span class="mfr-name">'+m.home+'</span><span class="mfr-score '+(ft&&m.hScore>m.aScore?'win':'')+'">'+hs+'</span></div>' +
+            '<div class="mfr-team"><span class="mfr-name">'+m.away+'</span><span class="mfr-score '+(ft&&m.aScore>m.hScore?'win':'')+'">'+as+'</span></div>' +
+          '</div>' +
+          '<button class="add-btn" onclick="event.stopPropagation();openMatchNarratives('+m.id+')">Narratives \u2192</button>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+
+function chipFilter(el, mode) {
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active'); _filterMode=mode; renderMatchListFiltered();
+}
+
+
+// ─── NARRATIVE ENGINE ─────────────────────────────────────────
+function applyMargin(p){ return Math.max(1.05, parseFloat((1/p*(1-HOUSE_MARGIN)).toFixed(2))); }
+
+// Called when user taps a match card OR "Narratives →" button
+function openMatchNarratives(matchId) {
+  var m = matches.find(function(f){
+    var id = f.fixture ? f.fixture.id : f.id;
+    return id === matchId;
+  });
+  if (!m) { toast('Match not found.'); return; }
+  var md = norm(m);
+  nav('build');
+
+  var prompt = document.getElementById('build-match-prompt');
+  var header = document.getElementById('build-match-header');
+  var title  = document.getElementById('build-match-title');
+  var narrsEl= document.getElementById('build-narratives');
+
+  if (prompt) prompt.style.display = 'none';
+  if (header) header.style.display = 'block';
+
+  var live = isLive(md.status), ft = isFT(md.status);
+  var statusTxt = live ? (' \u25cf LIVE ' + md.elapsed + "'") : ft ? (' FT ' + md.hScore + '-' + md.aScore) : (' ' + fmtTime(md.date));
+  if (title) title.textContent = md.home + ' vs ' + md.away + statusTxt;
+
+  if (narrsEl) narrsEl.innerHTML = '<div class="narr-loading"><div class="narr-spinner"></div>Generating for ' + md.home + ' vs ' + md.away + '…</div>';
+
+  generateNarratives(md).then(function(narrs) {
+    if (!narrsEl) return;
+    narrsEl.innerHTML = narrs.map(function(n, i) {
+      var key = 'n_' + matchId + '_' + i;
+      _ncache[key] = n;
+      return '<div class="narr-card ' + (n.odds >= 4 ? 'high-odds' : '') + '" onclick="addFromCache(\'' + key + '\')">' +
+        '<div class="narr-text">' + n.text + '</div>' +
+        '<div class="narr-foot">' +
+          '<div class="narr-outcome">' + n.outcome + '</div>' +
+          '<div class="narr-odds-wrap">' +
+            '<div class="narr-odds">' + n.odds.toFixed(2) + '<span style="font-size:9px;color:var(--muted);margin-left:1px">x</span></div>' +
+            '<div class="narr-add">+ Slip</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }).catch(function() {
+    if (narrsEl) narrsEl.innerHTML = '<div class="narr-empty">Could not load narratives — tap again.</div>';
+  });
+}
+
+function addFromCache(key) {
+  var n = _ncache[key];
+  if (!n) { toast('Error loading narrative.'); return; }
+  if (slip.some(function(s){ return s.text===n.text; })) { toast('Already in slip.'); return; }
+  slip.push(n);
+  updateSlipBadge();
+  toast('Added: '+n.text.slice(0,42)+'…');
+}
+
+
+// ─── STANDINGS + TOP SCORERS (shared, cached) ─────────────────
+var _standingsCache = null;
+var _topScorersCache = null;
+var _standingsFetchedAt = 0;
+
+function fetchStandings() {
+  if (_standingsCache && Date.now() - _standingsFetchedAt < 600000) {
+    return Promise.resolve(_standingsCache);
+  }
+  return Promise.all([
+    fetch(apiURL('standings', 'league=' + WC_LEAGUE + '&season=' + WC_SEASON))
+      .then(function(r){ return r.json(); }).catch(function(){ return {response:[]}; }),
+    fetch(apiURL('players/topscorers', 'league=' + WC_LEAGUE + '&season=' + WC_SEASON))
+      .then(function(r){ return r.json(); }).catch(function(){ return {response:[]}; })
+  ]).then(function(res) {
+    var groups = {};
+    var standings = res[0].response || [];
+    standings.forEach(function(grp) {
+      var league = grp.league;
+      if (!league || !league.standings) return;
+      league.standings.forEach(function(table) {
+        table.forEach(function(entry) {
+          var grpName = entry.group || 'Group';
+          if (!groups[grpName]) groups[grpName] = [];
+          groups[grpName].push({
+            team: entry.team.name,
+            pts:  entry.points,
+            gd:   entry.goalsDiff,
+            form: entry.form || '',
+            played: entry.all.played
+          });
+        });
+      });
+    });
+    var scorers = (res[1].response || []).slice(0, 10).map(function(p) {
+      return {
+        name:  p.player.name,
+        team:  p.statistics[0].team.name,
+        goals: p.statistics[0].goals.total
+      };
+    });
+    _standingsCache = { groups: groups, scorers: scorers };
+    _standingsFetchedAt = Date.now();
+    return _standingsCache;
+  });
+}
+
+function buildStandingsCtx(md, standingsData) {
+  var ctx = '';
+  if (!standingsData) return ctx;
+  // Find the group this match belongs to
+  var grpKey = md.round; // e.g. "Group A"
+  var grp = standingsData.groups[grpKey];
+  if (grp && grp.length) {
+    ctx += '\n' + grpKey.toUpperCase() + ' STANDINGS:\n';
+    grp.forEach(function(t, i) {
+      ctx += (i+1) + '. ' + t.team + ' — ' + t.pts + 'pts, GD:' + (t.gd > 0 ? '+' : '') + t.gd + ', Form:' + (t.form || 'N/A') + '\n';
+    });
+  }
+  if (standingsData.scorers && standingsData.scorers.length) {
+    ctx += '\nTOP SCORERS THIS TOURNAMENT:\n';
+    standingsData.scorers.slice(0, 5).forEach(function(s) {
+      ctx += s.name + ' (' + s.team + ') — ' + s.goals + ' goals\n';
+    });
+  }
+  return ctx;
+}
+
+// ─── AUTO-SETTLEMENT ──────────────────────────────────────────
+var _settledFixtures = {}; // track which fixtures we've already settled
+
+function evaluateOutcome(outcome, md, events) {
+  var h = md.hScore || 0, a = md.aScore || 0;
+  var total = h + a;
+  var o = outcome.toLowerCase();
+  if (o.indexOf('home win to nil') >= 0)    return h > a && a === 0;
+  if (o.indexOf('home win') >= 0)           return h > a;
+  if (o.indexOf('away win to nil') >= 0)    return a > h && h === 0;
+  if (o.indexOf('away win') >= 0)           return a > h;
+  if (o.indexOf('draw') >= 0)               return h === a;
+  if (o.indexOf('both teams score') >= 0)   return h > 0 && a > 0;
+  if (o.indexOf('over 2.5') >= 0)           return total > 2.5;
+  if (o.indexOf('under 2.5') >= 0)          return total < 2.5;
+  if (o.indexOf('over 1.5') >= 0)           return total > 1.5;
+  if (o.indexOf('under 1.5') >= 0)          return total < 1.5;
+  if (o.indexOf('clean sheet') >= 0)        return h === 0 || a === 0;
+  if (o.indexOf('first half goal') >= 0)    return events.some(function(e){ return e.type==='Goal' && e.minute <= 45; });
+  if (o.indexOf('goal after 75') >= 0)      return events.some(function(e){ return e.type==='Goal' && e.minute > 75; });
+  if (o.indexOf('set piece') >= 0)          return events.some(function(e){ return e.type==='Goal' && (e.detail==='Penalty' || e.detail==='Free Kick'); });
+  if (o.indexOf('penalty') >= 0)            return events.some(function(e){ return e.detail==='Penalty'; });
+  // Player performance — can't auto-evaluate without scorer name matching
+  // Mark as void for manual admin review
+  return null; // null = needs manual settlement
+}
+
+function autoSettleFixture(md) {
+  if (!fbReady || !db || !currentUser) return;
+  if (_settledFixtures[md.id]) return;
+  if (!isFT(md.status)) return;
+  _settledFixtures[md.id] = true;
+
+  fetchLiveEvents(md.id).then(function(events) {
+    // Find all open bets that include this fixture
+    db.collection('bets').where('status', '==', 'open').get().then(function(snap) {
+      var batch = db.batch();
+      var settleCount = 0;
+
+      snap.forEach(function(doc) {
+        var bet = doc.data();
+        // Check if any selection is from this fixture
+        var hasThisFixture = (bet.fixtureIds || []).indexOf(md.id) >= 0 ||
+          (bet.matchLabels || []).some(function(l){ return l.indexOf(md.home) >= 0 && l.indexOf(md.away) >= 0; });
+        if (!hasThisFixture) return;
+
+        // Evaluate each selection
+        var outcomes = bet.outcomes || [];
+        var allSettleable = true;
+        var allWon = true;
+
+        outcomes.forEach(function(outcome, i) {
+          var result = evaluateOutcome(outcome, md, events);
+          if (result === null) { allSettleable = false; } // needs manual review
+          else if (!result) { allWon = false; }
+        });
+
+        if (!allSettleable) {
+          // Flag for manual admin review
+          batch.update(doc.ref, { status: 'review', reviewReason: 'Contains player/manual outcome', settledAt: firebase.firestore.FieldValue.serverTimestamp() });
+        } else if (allWon) {
+          // Winner — credit payout
+          batch.update(doc.ref, { status: 'settled', result: 'won', settledAt: firebase.firestore.FieldValue.serverTimestamp() });
+          // Credit balance
+          db.collection('users').doc(bet.uid).get().then(function(uSnap) {
+            if (!uSnap.exists) return;
+            var newBal = (uSnap.data().balance || 0) + (bet.payout || 0);
+            db.collection('users').doc(bet.uid).update({ balance: newBal });
+            db.collection('transactions').add({
+              uid: bet.uid, type: 'win', amount: bet.payout || 0,
+              currency: 'NGN', provider: 'settlement', status: 'completed',
+              betId: doc.id, fixtureId: md.id,
+              matchLabel: md.home + ' vs ' + md.away,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          });
+        } else {
+          // Loser
+          batch.update(doc.ref, { status: 'settled', result: 'lost', settledAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        settleCount++;
+      });
+
+      if (settleCount > 0) {
+        batch.commit().then(function() {
+          console.log('[Narativ] Auto-settled', settleCount, 'bets for', md.home, 'vs', md.away);
+          // Log settlement
+          db.collection('settlements').add({
+            fixtureId: md.id, matchLabel: md.home + ' vs ' + md.away,
+            score: md.hScore + '-' + md.aScore,
+            betsSettled: settleCount, settledAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).catch(function(){});
+          // Refresh if admin is viewing
+          if (userData.role === 'admin') loadAdminPanel();
+        });
+      }
+    });
+  });
+}
+
+// Check all FT fixtures for unsettled bets on each data refresh
+function checkAutoSettlement() {
+  if (!fbReady || !db) return;
+  matches.forEach(function(f) {
+    var m = norm(f);
+    if (isFT(m.status) && !_settledFixtures[m.id]) {
+      autoSettleFixture(m);
+    }
+  });
+}
+
+// ─── ADMIN PANEL ──────────────────────────────────────────────
+function loadAdminPanel() {
+  if (!fbReady || !db || !currentUser) return;
+  if (userData.role !== 'admin') { toast('Admin access only.'); nav('home'); return; }
+
+  loadAdminBook();
+  loadSettlementQueue();
+  loadAdminUsers();
+  loadSettlementLog();
+}
+
+function loadAdminBook() {
+  db.collection('bets').get().then(function(snap) {
+    var totalStaked = 0, totalLiability = 0, totalPaid = 0;
+    snap.forEach(function(d) {
+      var b = d.data();
+      totalStaked += b.stake || 0;
+      if (b.status === 'open') totalLiability += b.payout || 0;
+      if (b.result === 'won') totalPaid += b.payout || 0;
+    });
+    var pnl = totalStaked - totalPaid;
+    var fmt = function(n){ return '\u20a6' + Math.abs(n).toLocaleString('en-NG'); };
+    var el = document.getElementById('adm-staked'); if (el) el.textContent = fmt(totalStaked);
+    var el2 = document.getElementById('adm-liability'); if (el2) el2.textContent = fmt(totalLiability);
+    var el3 = document.getElementById('adm-pnl');
+    if (el3) { el3.textContent = fmt(pnl); el3.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)'; }
+  }).catch(function(){});
+}
+
+function loadSettlementQueue() {
+  var el = document.getElementById('adm-settle-list'); if (!el) return;
+  // Show FT matches that may need review bets
+  var ftMatches = matches.map(norm).filter(function(m){ return isFT(m.status); });
+  if (!ftMatches.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">No finished matches yet.</div>'; return; }
+  el.innerHTML = ftMatches.map(function(m) {
+    return '<div class="adm-card">' +
+      '<div class="adm-match">' + m.home + ' ' + m.hScore + ' - ' + m.aScore + ' ' + m.away + '</div>' +
+      '<div class="adm-meta">' + m.round + ' \u00b7 FT</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="adm-btn settle" onclick="adminForceSettle(' + m.id + ')">Settle All</button>' +
+        '<button class="adm-btn void" onclick="adminVoidMatch(' + m.id + ')">Void Match</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function loadAdminUsers() {
+  var el = document.getElementById('adm-users'); if (!el) return;
+  db.collection('users').limit(20).get().then(function(snap) {
+    if (snap.empty) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">No users yet.</div>'; return; }
+    el.innerHTML = snap.docs.map(function(d) {
+      var u = d.data();
+      return '<div class="adm-user-row">' +
+        '<div><div class="adm-uname">' + (u.displayName||'User') + '</div><div class="adm-uemail">' + (u.email||'') + '</div></div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span class="adm-ubal">\u20a6' + (u.balance||0).toLocaleString('en-NG') + '</span>' +
+          '<button class="adm-btn override" onclick="adminCreditUser(\'' + d.id + '\')">Credit</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }).catch(function(){ el.innerHTML = '<div style="color:var(--muted);font-size:12px">Could not load users.</div>'; });
+}
+
+function loadSettlementLog() {
+  var el = document.getElementById('adm-settle-log'); if (!el) return;
+  db.collection('settlements').orderBy ? 
+    db.collection('settlements').limit(10).get().then(function(snap) {
+      if (snap.empty) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">No settlements yet.</div>'; return; }
+      var logs = [];
+      snap.forEach(function(d){ logs.push(d.data()); });
+      logs.sort(function(a,b){ return ((b.settledAt&&b.settledAt.seconds)||0)-((a.settledAt&&a.settledAt.seconds)||0); });
+      el.innerHTML = logs.map(function(l) {
+        var dt = l.settledAt ? new Date(l.settledAt.seconds*1000).toLocaleDateString('en-NG') : '\u2014';
+        return '<div class="settle-log-item">' +
+          '<div><div style="font-weight:600;color:var(--text)">' + (l.matchLabel||'Match') + '</div>' +
+          '<div style="color:var(--muted)">' + (l.score||'') + ' \u00b7 ' + dt + '</div></div>' +
+          '<div class="won">' + (l.betsSettled||0) + ' bets</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function(){}) 
+  : db.collection('settlements').limit(10).get().then(function(snap) {
+      el.innerHTML = snap.empty ? '<div style="color:var(--muted);font-size:12px">No settlements yet.</div>' :
+        snap.docs.map(function(d){ var l=d.data(); return '<div class="settle-log-item"><div style="font-weight:600;color:var(--text)">'+(l.matchLabel||'Match')+'</div><div class="won">'+(l.betsSettled||0)+' bets</div></div>'; }).join('');
+    }).catch(function(){});
+}
+
+function adminForceSettle(fixtureId) {
+  var m = matches.map(norm).find(function(x){ return x.id === fixtureId; });
+  if (!m) { toast('Match not found.'); return; }
+  delete _settledFixtures[fixtureId]; // force re-settle
+  autoSettleFixture(m);
+  toast('Settling bets for ' + m.home + ' vs ' + m.away + '…');
+}
+
+function adminVoidMatch(fixtureId) {
+  if (!confirm('Void all bets for this match? This refunds all stakes.')) return;
+  db.collection('bets').where('status', '==', 'open').get().then(function(snap) {
+    var batch = db.batch();
+    var refunds = [];
+    snap.forEach(function(doc) {
+      var b = doc.data();
+      var hasMatch = (b.matchLabels||[]).some(function(l){
+        var m = matches.map(norm).find(function(x){ return x.id === fixtureId; });
+        return m && l.indexOf(m.home) >= 0;
+      });
+      if (!hasMatch) return;
+      batch.update(doc.ref, { status: 'settled', result: 'void', settledAt: firebase.firestore.FieldValue.serverTimestamp() });
+      refunds.push({ uid: b.uid, stake: b.stake || 0, betId: doc.id });
+    });
+    batch.commit().then(function() {
+      refunds.forEach(function(r) {
+        db.collection('users').doc(r.uid).get().then(function(uSnap) {
+          if (!uSnap.exists) return;
+          db.collection('users').doc(r.uid).update({ balance: (uSnap.data().balance||0) + r.stake });
+          db.collection('transactions').add({ uid: r.uid, type: 'refund', amount: r.stake, currency: 'NGN', provider: 'void', status: 'completed', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+      });
+      toast('\u2705 ' + refunds.length + ' bets voided and refunded.');
+      loadAdminPanel();
+    });
+  });
+}
+
+function adminCreditUser(uid) {
+  var amt = prompt('Credit amount (₦):');
+  if (!amt || isNaN(amt) || Number(amt) <= 0) return;
+  db.collection('users').doc(uid).get().then(function(snap) {
+    if (!snap.exists) return;
+    var newBal = (snap.data().balance||0) + Number(amt);
+    db.collection('users').doc(uid).update({ balance: newBal }).then(function() {
+      db.collection('transactions').add({ uid: uid, type: 'deposit', amount: Number(amt), currency: 'NGN', provider: 'admin_credit', status: 'completed', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      toast('\u2705 \u20a6' + Number(amt).toLocaleString() + ' credited.');
+      loadAdminUsers();
+    });
+  });
+}
+
+// ─── NARRATIVE ENGINE (RapidAPI → Groq) ───────────────────────
+var _lineupCache = {};  // fixtureId → {home, away, hCoach, aCoach, hStars, aStars}
+var _eventsCache = {};  // fixtureId → [{minute, type, player, team}]
+
+function fetchLineups(fixtureId) {
+  var key = 'lu_' + fixtureId;
+  if (_lineupCache[key]) return Promise.resolve(_lineupCache[key]);
+
+  // Check Firestore first
+  var fsKey = 'lineup_' + fixtureId;
+  var fsCheck = (fbReady && db)
+    ? db.collection('_cache').doc(fsKey).get().then(function(snap) {
+        if (snap.exists) { _lineupCache[key] = snap.data().lineup; return snap.data().lineup; }
+        return null;
+      }).catch(function() { return null; })
+    : Promise.resolve(null);
+
+  return fsCheck.then(function(cached) {
+    if (cached) return cached;
+    // Not in cache — call RapidAPI
+    return fetch(apiURL('fixtures/lineups', 'fixture=' + fixtureId))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var teams = data.response || [];
+        if (teams.length < 2) return null; // lineups not out yet
+        var h = teams[0], a = teams[1];
+        // Pick 2 most attack-minded players per team
+        function pickStars(team) {
+          var players = (team.startXI || []).map(function(p) { return p.player; });
+          // Prioritise forwards, then attacking mids, then the rest
+          var fwd = players.filter(function(p) { return p.pos === 'F'; });
+          var mid = players.filter(function(p) { return p.pos === 'M'; });
+          var pool = fwd.concat(mid).concat(players);
+          return [pool[0] && pool[0].name, pool[1] && pool[1].name].filter(Boolean);
+        }
+        var lineup = {
+          hCoach:  h.coach && h.coach.name,
+          aCoach:  a.coach && a.coach.name,
+          hStars:  pickStars(h),
+          aStars:  pickStars(a),
+          hForm:   h.team && h.team.name,
+          aForm:   a.team && a.team.name
+        };
+        _lineupCache[key] = lineup;
+        // Save to Firestore (permanent cache — lineups don't change)
+        if (fbReady && db) {
+          db.collection('_cache').doc(fsKey).set({ lineup: lineup, savedAt: Date.now() }).catch(function(){});
+        }
+        return lineup;
+      }).catch(function() { return null; });
+  });
+}
+
+function fetchLiveEvents(fixtureId) {
+  var key = 'ev_' + fixtureId;
+  // Events can change during live — only use cache for FT matches
+  return fetch(apiURL('fixtures/events', 'fixture=' + fixtureId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var evs = (data.response || []).map(function(e) {
+        return {
+          minute: e.time && e.time.elapsed,
+          type:   e.type,
+          detail: e.detail,
+          player: e.player && e.player.name,
+          team:   e.team && e.team.name
+        };
+      });
+      _eventsCache[key] = evs;
+      return evs;
+    }).catch(function() { return []; });
+}
+
+// ─── NARRATIVE ENGINE (RapidAPI → Groq) ───────────────────────
+function withTimeout(promise, ms, fallback) {
+  var timer = new Promise(function(resolve) { setTimeout(function() { resolve(fallback); }, ms); });
+  return Promise.race([promise, timer]);
+}
+
+function generateNarratives(md) {
+  var cacheKey = 'fix_' + md.id + '_' + md.status + (md.elapsed || '');
+  if (narrativeCache[cacheKey]) return Promise.resolve(narrativeCache[cacheKey]);
+
+  var ft   = isFT(md.status);
+  var live = isLive(md.status);
+
+  return Promise.all([
+    fetchStandings(),
+    fetchLineups(md.id),
+    (ft || live) ? fetchLiveEvents(md.id) : Promise.resolve([])
+  ]).then(function(results) {
+    var standingsData = results[0];
+    var lineup = results[1];
+    var events = results[2];
+
+    var ctx = '';
+    if (ft)        ctx += 'RESULT: ' + md.home + ' ' + md.hScore + ' - ' + md.aScore + ' ' + md.away + ' (Full Time)\n';
+    else if (live) ctx += 'LIVE: ' + md.home + ' ' + md.hScore + ' - ' + md.aScore + ' ' + md.away + ', minute ' + md.elapsed + '\n';
+    else           ctx += 'STATUS: Upcoming — ' + fmtDate(md.date) + '\n';
+
+    ctx += buildStandingsCtx(md, standingsData);
+
+    var hasLineups = lineup && lineup.hStars && lineup.hStars.length;
+    if (hasLineups) {
+      ctx += '\nCONFIRMED LINEUPS:\n';
+      ctx += md.home + ' — Coach: ' + (lineup.hCoach||'Unknown') + ' | Key players: ' + lineup.hStars.join(', ') + '\n';
+      ctx += md.away + ' — Coach: ' + (lineup.aCoach||'Unknown') + ' | Key players: ' + lineup.aStars.join(', ') + '\n';
+    } else {
+      ctx += '\nLINEUPS: Not yet announced. Use your knowledge of these teams to name their most recognisable players.\n';
+    }
+
+    if (events.length) {
+      var goals = events.filter(function(e){ return e.type==='Goal'; });
+      var cards = events.filter(function(e){ return e.type==='Card'; });
+      if (goals.length) { ctx += '\nGOALS:\n'; goals.forEach(function(g){ ctx += g.minute + '\' - ' + (g.player||'Unknown') + ' (' + (g.team||'') + ') ' + (g.detail||'') + '\n'; }); }
+      if (cards.length) { ctx += '\nCARDS:\n'; cards.forEach(function(c){ ctx += c.minute + '\' - ' + (c.player||'Unknown') + ' (' + (c.team||'') + ') ' + (c.detail||'') + '\n'; }); }
+    }
+
+    var count = hasLineups ? 10 : 7;
+
+    var prompt =
+      'You are the narrative engine for Narativ, a FIFA World Cup 2026 betting app.\n\n' +
+      'MATCH: ' + md.home + ' vs ' + md.away + '\n' +
+      'COMPETITION: ' + md.round + ', FIFA World Cup 2026\n' +
+      ctx + '\n' +
+      'NARRATIVE RULES:\n' +
+      '- Sound like someone who already watched or deeply knows these teams\n' +
+      '- Format: [player name OR coach name OR team] [cold fact] - [what happens] [timeframe]\n' +
+      '- ALWAYS use specific real names — never say "the striker" — use their actual name\n' +
+      '- When lineups not confirmed, use your knowledge of each team star players\n' +
+      '- Short, punchy, declarative — no fluff, no apostrophes in output\n' +
+      '- Mix: player goal, player assist, coach tactic, team shape, set piece, both score, wildcard\n' +
+      '- Examples of CORRECT tone:\n' +
+      '  "Alphonso Davies bursts down the left - Canada open inside 15 minutes"\n' +
+      '  "Dzeko holds up play all game - Bosnia score on the counter"\n' +
+      '  "Regragui sets a low block - Morocco keep a clean sheet"\n' +
+      '  "Both keepers are tested early - goals at both ends before 60"\n\n' +
+      'Generate exactly ' + count + ' narratives. Return ONLY valid JSON, no markdown:\n' +
+      '[{"text":"narrative here","outcome":"market type","probability":0.40}]\n' +
+      'Probabilities 0.08-0.78. Each narrative must feel specific to THIS exact match.';
+
+    var groqCall = fetch(GROQ_BASE, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role:'user', content: prompt }], max_tokens: 1400, temperature: 0.72 })
+    }).then(function(r) {
+      if (!r.ok) throw new Error('Groq HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (data.error) throw new Error(data.error.message);
+      var raw = (data.choices && data.choices[0]) ? data.choices[0].message.content : '';
+      var m = raw.match(/\[[\s\S]*\]/);
+      if (!m) throw new Error('No JSON array');
+      var parsed = JSON.parse(m[0]);
+      if (!Array.isArray(parsed) || !parsed.length) throw new Error('Empty');
+      var result = parsed.map(function(n) {
+        var p = Math.max(0.08, Math.min(0.78, parseFloat(n.probability)||0.35));
+        return { text: (n.text||'Narrative').replace(/'/g,''), outcome: n.outcome||'Match Result', odds: applyMargin(p), matchLabel: md.home+' vs '+md.away, fixtureId: md.id };
+      });
+      narrativeCache[cacheKey] = result;
+      return result;
+    });
+
+    return withTimeout(groqCall, 10000, fallbackNarratives(md, lineup))
+      .catch(function() { return fallbackNarratives(md, lineup); });
+  });
+}
+
+function fallbackNarratives(md, lineup) {
+  var h = md.home, a = md.away;
+  var hStar = (lineup && lineup.hStars && lineup.hStars[0]) || h;
+  var aStar = (lineup && lineup.aStars && lineup.aStars[0]) || a;
+  var hCoach = (lineup && lineup.hCoach) || h + ' coach';
+  var aCoach = (lineup && lineup.aCoach) || a + ' coach';
+  var items = [
+    { text: hStar + ' controls the tempo - goal or assist before the hour', outcome: 'Player Performance', probability: 0.38 },
+    { text: aStar + ' arrives as a threat - scores or creates inside 30 minutes', outcome: 'Away Player Goal', probability: 0.32 },
+    { text: hCoach + ' sets the press - ' + h + ' dominate possession and win', outcome: 'Home Win', probability: 0.42 },
+    { text: aCoach + ' sets a low block - ' + a + ' hit on the counter', outcome: 'Away Win', probability: 0.30 },
+    { text: 'Both defences crack - goals at both ends before 80 minutes', outcome: 'Both Teams Score', probability: 0.54 },
+    { text: hStar + ' delivers from a dead ball - set piece goal', outcome: 'Set Piece Goal', probability: 0.40 },
+    { text: h + ' dominate the first half - lead at HT and hold on', outcome: 'Home Win to Nil', probability: 0.28 },
+    { text: 'Late intervention - a goal after the 75th minute decides it', outcome: 'Goal After 75 Min', probability: 0.50 },
+    { text: aStar + ' runs in behind - finishes clinically on the break', outcome: 'Away First Goal', probability: 0.34 },
+    { text: 'Over 2.5 goals - neither side can keep it tight', outcome: 'Over 2.5 Goals', probability: 0.48 }
+  ];
+  return items.map(function(n) {
+    return { text: n.text, outcome: n.outcome, odds: applyMargin(n.probability), matchLabel: h + ' vs ' + a, fixtureId: md.id };
+  });
+}
+
+// Render narratives on home page — shows fallback immediately, upgrades if Groq responds
+function renderNarrativesHome() {
+  var container = document.getElementById('narratives-home');
+  if (!container) return;
+  if (!matches.length) {
+    container.innerHTML = '<div class="narr-empty" style="padding:24px 16px;color:var(--muted);text-align:center">No matches available.</div>';
+    return;
+  }
+  // Priority: live > upcoming > finished
+  var live=[], upcoming=[], finished=[];
+  matches.forEach(function(f) {
+    var m = norm(f);
+    if (isLive(m.status)) live.push(m);
+    else if (isFT(m.status)) finished.push(m);
+    else upcoming.push(m);
+  });
+  upcoming.sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
+  var featured = live.concat(upcoming).concat(finished).slice(0, 2);
+
+  // Show fallback narratives IMMEDIATELY — no waiting
+  container.innerHTML = featured.map(function(md) {
+    var narrs = fallbackNarratives(md).slice(0, 3);
+    return buildNarrSection(md, narrs);
+  }).join('');
+
+  // Then try Groq in background — if it responds, upgrade the content
+  var promises = featured.map(function(md) {
+    return generateNarratives(md).then(function(narrs) { return { md: md, narrs: narrs.slice(0, 3) }; })
+      .catch(function() { return { md: md, narrs: fallbackNarratives(md).slice(0, 3) }; });
+  });
+  Promise.all(promises).then(function(results) {
+    // Only upgrade if we got real Groq data (not just fallback again)
+    container.innerHTML = results.map(function(r) {
+      return buildNarrSection(r.md, r.narrs);
+    }).join('');
+  }).catch(function() { /* keep fallback shown */ });
+}
+
+function buildNarrSection(md, narrs) {
+  var live = isLive(md.status), ft = isFT(md.status);
+  var badge = live
+    ? '<span class="narr-badge live">LIVE</span>'
+    : ft
+    ? '<span class="narr-badge" style="background:rgba(201,168,76,.1);color:var(--gold);border-color:rgba(201,168,76,.25)">FT '+md.hScore+'-'+md.aScore+'</span>'
+    : '<span class="narr-badge">Upcoming</span>';
+  return '<div class="narr-section">' +
+    '<div class="narr-match-header">' +
+      '<div class="narr-match-title">'+md.home+' <span style="color:var(--muted)">vs</span> '+md.away+'</div>' +
+      badge +
+    '</div>' +
+    '<div class="narr-cards-row">' +
+    narrs.map(function(n, i) {
+      var key = 'nh_'+md.id+'_'+i; _ncache[key] = n;
+      return '<div class="narr-card '+(n.odds>=4?'high-odds':'')+'" onclick="addFromCache(\''+key+'\')">' +
+        '<div class="narr-text">'+n.text+'</div>' +
+        '<div class="narr-foot"><div class="narr-outcome">'+n.outcome+'</div>' +
+        '<div class="narr-odds-wrap"><div class="narr-odds">'+n.odds.toFixed(2)+'<span style="font-size:9px;color:var(--muted);margin-left:1px">\u00d7</span></div>' +
+        '<div class="narr-add">+ Slip</div></div></div></div>';
+    }).join('') +
+    '</div>' +
+    '<div style="text-align:right;padding:6px 0"><span style="font-size:11px;color:var(--blue);cursor:pointer" onclick="openMatchNarratives('+md.id+')">See all 10 \u2192</span></div>' +
+  '</div>';
+}
+
+// ─── SLIP ─────────────────────────────────────────────────────
+function updateSlipBadge() {
+  var b = document.getElementById('slip-badge');
+  if (b) { 
+    b.textContent = slip.length; 
+    b.style.display = slip.length ? 'flex' : 'none'; 
+  }
+  renderSlip();
+}
+function renderSlip() {
+  var list=document.getElementById('slip-list'), foot=document.getElementById('slip-foot');
+  if(!list) return;
+  if(!slip.length) {
+    list.innerHTML='<div class="slip-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg><p>Slip is empty</p><small>Tap + Slip on any narrative</small></div>';
+    if(foot) foot.style.display='none'; return;
+  }
+  var totalOdds=slip.reduce(function(a,s){return a*s.odds;},1);
+  var stake=parseFloat((document.getElementById('stake')||{}).value)||0;
+  list.innerHTML=slip.map(function(s,i){
+    return '<div class="slip-item">' +
+      '<div class="slip-left"><div class="slip-name">'+s.text+'</div><div class="slip-desc">'+(s.matchLabel||'')+' · '+s.outcome+'</div></div>' +
+      '<div class="slip-right"><div class="slip-odds">'+s.odds.toFixed(2)+'<small>×</small></div>' +
+      '<button class="slip-rm" onclick="slip.splice('+i+',1);updateSlipBadge()">✕</button></div></div>';
+  }).join('');
+  if(foot) { foot.style.display='block'; }
+  document.getElementById('total-odds').textContent=totalOdds.toFixed(2)+'×';
+  document.getElementById('total-payout').textContent=stake?'₦'+Math.round(stake*totalOdds).toLocaleString('en-NG'):'—';
+}
+function setStake(n){ var el=document.getElementById('stake'); if(el){el.value=n;renderSlip();} }
+function removeSlip(i){ slip.splice(i,1); updateSlipBadge(); }
+
+// ─── PLACE BET ────────────────────────────────────────────────
+function placeBet() {
+  if (!slip.length) { toast('Add narratives to your slip first.'); return; }
+  var stake=parseFloat(document.getElementById('stake').value)||0;
+  if (stake<100) { toast('Minimum stake is \u20a6100.'); return; }
+  if (!fbReady||!currentUser) { toast('You need to be signed in to place bets.'); return; }
+  var bal=userData.balance||0;
+  if (stake>bal) { toast('Insufficient balance. Fund your wallet first.'); return; }
+  var totalOdds=slip.reduce(function(a,s){return a*s.odds;},1);
+  db.collection('bets').add({
+    uid:currentUser.uid, selections:slip.map(function(s){return s.text;}),
+    matchLabels:slip.map(function(s){return s.matchLabel||'';}),
+    totalOdds:totalOdds, stake:stake, payout:Math.round(stake*totalOdds),
+    status:'open', createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function() {
+    userData.balance=bal-stake;
+    return db.collection('users').doc(currentUser.uid).update({balance:userData.balance});
+  }).then(function() {
+    logTx('bet',stake,'NGN','slip');
+    slip=[]; updateSlipBadge(); renderWalletBalance(); renderBalChip();
+    toast('\uD83C\uDFAF Bet placed! \u20a6'+stake.toLocaleString()+' @ '+totalOdds.toFixed(2)+'\u00d7');
+  }).catch(function(e){ console.error(e); toast('Error placing bet — check Firestore rules.'); });
+}
+
+// ─── NAV ──────────────────────────────────────────────────────
+function nav(page) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(b){b.classList.remove('active');});
+  var pg=document.getElementById('page-'+page), nb=document.getElementById('nav-'+page);
+  if(pg) pg.classList.add('active');
+  if(nb) nb.classList.add('active');
+  if(page==='wallet')  { renderWalletBalance(); loadTransactions(); }
+  if(page==='profile') { renderProfile(); loadMyBets(); }
+  if(page==='slip')    { renderSlip(); }
+  if(page==='matches') { renderMatchListFiltered(); }
+  if(page==='admin')   { loadAdminPanel(); }
+  window.scrollTo(0,0);
+}
+
+// ─── WALLET & PAYSTACK ────────────────────────────────────────
+function renderWalletBalance() {
+  var bal=(userData.balance||0).toLocaleString('en-NG',{maximumFractionDigits:0});
+  var el=document.getElementById('w-balance'); if(el) el.textContent='\u20a6'+bal;
+}
+function renderBalChip() {
+  var el=document.getElementById('bal-chip');
+  if(el) el.textContent='\u20a6'+((userData.balance||0)).toLocaleString('en-NG',{maximumFractionDigits:0});
+}
+
+function openPaystack() {
+  if(!fbReady||!currentUser){toast('Sign in to fund your wallet.');return;}
+  if(typeof PaystackPop==='undefined'){toast('Payment SDK loading — try again.');return;}
+  var amt=prompt('Enter amount to deposit (\u20a6):');
+  if(!amt||isNaN(amt)||Number(amt)<100){toast('Enter a valid amount (min \u20a6100).');return;}
+  PaystackPop.setup({
+    key:PAYSTACK_KEY, email:currentUser.email,
+    amount:Math.round(Number(amt)*100), currency:'NGN',
+    ref:'NAR-'+Date.now(),
+    callback:function(){
+      var nb=(userData.balance||0)+Number(amt);
+      db.collection('users').doc(currentUser.uid).update({balance:nb}).then(function(){
+        userData.balance=nb; renderWalletBalance(); renderBalChip();
+        logTx('deposit',Number(amt),'NGN','paystack');
+        toast('\u2705 \u20a6'+Number(amt).toLocaleString()+' added!');
+      });
+    },
+    onClose:function(){ toast('Payment cancelled.'); }
+  }).openIframe();
+}
+
+// ─── CRYPTO (NOWPayments sandbox) ────────────────────────────
+var _selCrypto='USDT';
+function openCryptoModal(){ if(!fbReady||!currentUser){toast('Sign in first.');return;} document.getElementById('crypto-modal').classList.add('show'); document.getElementById('pay-qr').classList.remove('show'); }
+function selectCrypto(sym){
+  _selCrypto=sym;
+  document.querySelectorAll('.crypto-opt').forEach(function(o){o.classList.remove('sel');});
+  document.getElementById('opt-'+sym.toLowerCase()).classList.add('sel');
+}
+function initCryptoPayment() {
+  var ngn=parseFloat(document.getElementById('crypto-ngn').value);
+  if(!ngn||ngn<500){toast('Min \u20a6500.');return;}
+  var usd=(ngn/1600).toFixed(2);
+  toast('Creating payment…');
+  fetch(NOW_BASE+'/payment',{
+    method:'POST',
+    headers:{'x-api-key':NOW_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({price_amount:usd,price_currency:'usd',pay_currency:_selCrypto.toLowerCase(),order_id:'NAR-'+Date.now(),order_description:'Narativ deposit'})
+  }).then(function(r){return r.json();}).then(function(d){
+    showCryptoAddr(d.pay_address||((_selCrypto==='USDT'?'TXsandbox':('sol')+Math.random().toString(36).slice(2,8))), d.pay_amount||usd, ngn);
+  }).catch(function(){
+    // CORS in sandbox — simulate
+    showCryptoAddr(_selCrypto==='USDT'?'TXsandbox'+Math.random().toString(36).slice(2,10).toUpperCase():'SandboxSol'+Math.random().toString(36).slice(2,8), (ngn/1600).toFixed(4), ngn);
+  });
+}
+function showCryptoAddr(addr, amt, ngn) {
+  document.getElementById('pay-addr').textContent=addr;
+  document.getElementById('pay-amt').textContent=amt+' '+_selCrypto;
+  document.getElementById('pay-qr').classList.add('show');
+  setTimeout(function(){
+    if(!fbReady||!currentUser){return;}
+    var nb=(userData.balance||0)+ngn;
+    db.collection('users').doc(currentUser.uid).update({balance:nb}).then(function(){
+      userData.balance=nb; renderWalletBalance(); renderBalChip();
+      logTx('deposit',ngn,_selCrypto,'nowpayments');
+      toast('\u2705 \u20a6'+ngn.toLocaleString()+' credited (sandbox)!');
+      document.getElementById('crypto-modal').classList.remove('show');
+    });
+  },3000);
+}
+
+// ─── TRANSACTIONS ─────────────────────────────────────────────
+function logTx(type,amount,currency,provider) {
+  if(!fbReady||!db||!currentUser) return;
+  db.collection('transactions').add({uid:currentUser.uid,type:type,amount:amount,currency:currency||'NGN',provider:provider||'internal',status:'completed',createdAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(function(){});
+}
+function loadTransactions() {
+  var el=document.getElementById('tx-list'); if(!el) return;
+  if(!fbReady||!currentUser){el.innerHTML='<div class="loading-msg">Sign in to view history.</div>';return;}
+  db.collection('transactions').where('uid','==',currentUser.uid).limit(30).get().then(function(snap){
+    if(snap.empty){el.innerHTML='<div class="loading-msg">No transactions yet.</div>';return;}
+    var txs=[];snap.forEach(function(d){txs.push(d.data());});
+    txs.sort(function(a,b){return ((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0);});
+    el.innerHTML=txs.map(function(t){
+      var pos=t.type==='deposit'||t.type==='win';
+      var icon=t.type==='deposit'?'\uD83D\uDCB3':t.type==='win'?'\uD83C\uDFC6':'\uD83C\uDFAF';
+      var lbl=t.type==='deposit'?'Deposit \u00b7 '+(t.provider||''):t.type==='win'?'Bet won':t.type==='bet'?'Bet placed':'Transaction';
+      var dt=t.createdAt?new Date(t.createdAt.seconds*1000).toLocaleDateString('en-NG'):'—';
+      return '<div class="tx-item"><div class="tx-left"><div class="tx-icon '+(pos?'dep':'bet')+'">'+icon+'</div><div><div class="tx-label">'+lbl+'</div><div class="tx-date">'+dt+'</div></div></div><div class="tx-amt '+(pos?'pos':'neg')+'">'+(pos?'+':'-')+'\u20a6'+(t.amount||0).toLocaleString('en-NG')+'</div></div>';
+    }).join('');
+  }).catch(function(){el.innerHTML='<div class="loading-msg">Could not load transactions.</div>';});
+}
+
+// ─── MY BETS ──────────────────────────────────────────────────
+function hTab(mode) {
+  document.querySelectorAll('.hist-tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.hist-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('htab-'+mode).classList.add('active');
+  document.getElementById('hpanel-'+mode).classList.add('active');
+}
+function loadMyBets() {
+  if(!fbReady||!currentUser){document.getElementById('hpanel-open').innerHTML='<div class="hist-empty">Sign in to see bets.</div>';return;}
+  db.collection('bets').where('uid','==',currentUser.uid).limit(50).get().then(function(snap){
+    var open=[],settled=[];
+    snap.forEach(function(d){var b=Object.assign({id:d.id},d.data()); (b.status==='open'?open:settled).push(b);});
+    function byDate(a,b){return ((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0);}
+    open.sort(byDate); settled.sort(byDate);
+    var op=document.getElementById('hpanel-open'),st=document.getElementById('hpanel-settled');
+    op.innerHTML=!open.length?'<div class="hist-empty">No open bets yet.</div>':open.map(function(b){
+      return '<div class="bet-card"><div class="bc-head"><span class="bc-id">#'+b.id.slice(-6).toUpperCase()+'</span><span class="bc-pending">Pending</span></div>' +
+        '<div class="bc-sels">'+(b.selections||[]).slice(0,3).map(function(s){return '<div class="bc-sel">'+(s.length>55?s.slice(0,55)+'…':s)+'</div>';}).join('')+'</div>' +
+        '<div class="bc-foot"><span class="bc-stake">\u20a6'+(b.stake||0).toLocaleString()+'</span><span class="bc-odds">'+(b.totalOdds||1).toFixed(2)+'\u00d7</span><span class="bc-pot">\u20a6'+(b.payout||0).toLocaleString()+'</span></div></div>';
+    }).join('');
+    st.innerHTML=!settled.length?'<div class="hist-empty">No settled bets yet.</div>':settled.map(function(b){
+      var won=b.result==='won';
+      return '<div class="sbc '+(won?'won':'lost')+'"><div class="sbc-head"><span style="font-size:10px;color:var(--muted)">#'+b.id.slice(-6).toUpperCase()+'</span><span class="sbc-res '+(won?'won':'lost')+'">'+(won?'WON':'LOST')+'</span></div>' +
+        '<div class="sbc-desc">'+(b.selections||[]).join(' · ')+'</div>' +
+        '<div class="sbc-foot"><span class="sbc-date">\u20a6'+(b.stake||0).toLocaleString()+' @ '+(b.totalOdds||1).toFixed(2)+'\u00d7</span><span class="sbc-pnl '+(won?'pos':'neg')+'">'+(won?'+\u20a6':'-\u20a6')+Math.abs(won?b.payout-b.stake:b.stake).toLocaleString()+'</span></div></div>';
+    }).join('');
+  }).catch(function(){ document.getElementById('hpanel-open').innerHTML='<div class="hist-empty">Could not load bets.</div>'; });
+}
+
+// ─── PROFILE ──────────────────────────────────────────────────
+function renderProfile() {
+  var name=userData.displayName||(currentUser&&currentUser.displayName)||'Player';
+  var email=userData.email||(currentUser&&currentUser.email)||'';
+  var av=document.getElementById('p-avatar'); if(av) av.textContent=name.slice(0,1).toUpperCase();
+  var pn=document.getElementById('p-name'); if(pn) pn.textContent=name;
+  var pe=document.getElementById('p-email'); if(pe) pe.textContent=email;
+  var pf=document.getElementById('pref-name'); if(pf) pf.textContent=name;
+}
+function changeDisplayName() {
+  var n=prompt('New display name:'); if(!n||!n.trim()) return;
+  if(fbReady&&currentUser) {
+    currentUser.updateProfile({displayName:n.trim()}).catch(function(){});
+    db.collection('users').doc(currentUser.uid).update({displayName:n.trim()}).catch(function(){});
+    userData.displayName=n.trim(); renderProfile(); toast('Name updated!');
+  }
+}
+
+// ─── TOAST ────────────────────────────────────────────────────
+function toast(msg) {
+  var t=document.getElementById('toast-el'); if(!t) return;
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────
+function waitForFirebase(attempts) {
+  if (typeof firebase !== 'undefined' && firebase.app) {
+    initFirebase();
+  } else if (attempts > 0) {
+    setTimeout(function(){ waitForFirebase(attempts - 1); }, 200);
+  } else {
+    document.getElementById('auth-gate').classList.add('show');
+    document.getElementById('a-err').textContent = 'Firebase failed to load. Check your connection and reload.';
+  }
+}
+window.addEventListener('load', function(){ waitForFirebase(25); });
+</script>
+
+</body>
+</html>
