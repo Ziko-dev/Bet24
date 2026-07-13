@@ -8,14 +8,11 @@ export default async function handler(req, res) {
   const params = new URLSearchParams(rest).toString();
   const url = `https://txline-dev.txodds.com/api/${path}${params ? '?' + params : ''}`;
 
-  const JWT   = process.env.TXODDS_JWT;
-  const TOKEN = process.env.TXODDS_TOKEN;
-
   try {
     const r = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${JWT}`,
-        'X-Api-Token': TOKEN
+        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3ODY0OTQ3NDgsInJvbGUiOiJndWVzdCIsInNlc3Npb25JZCI6IjFhOTYyMmU2LTE0MzYtNGRiNi1iMzNiLWU4Y2M2MTJkMDZjMiIsIm1heWJlQ2xpZW50SXAiOiIxOC42OC41Mi4xMTUifQ.GD3HexFsMqfHgkXkLgh2KYJSJXDCGyGGjT1pVqgfG3OR09CP6efYOFj7cmIMeU9i10D2pqnvVM2s7JGP7rnjeg',
+        'X-Api-Token': 'txoracle_api_194e79f90cf449cc91b7a74cc8662ec9'
       }
     });
     const data = await r.json();
